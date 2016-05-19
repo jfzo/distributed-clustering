@@ -6,7 +6,9 @@
 %algorithms, of the data reduced to dimension t_vector=[14].
 
 	%Load data
-	P=importdata('pendigits.mat');
+	%P=importdata('pendigits.mat');
+    %P=importdata('../data/noisy_circles.csv');
+    P=importdata('../data/noisy_moons.csv');
     
 	%'Random'graph generation with n=9, p=0.3
     G= random_graph_gen(9,0.3);    
