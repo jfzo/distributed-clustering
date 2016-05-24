@@ -8,24 +8,45 @@
 	%Load data
 	%P=importdata('pendigits.mat');
     %P=importdata('../data/noisy_circles.csv');
-    P=importdata('../data/noisy_moons.csv');
+    %P=importdata('../data/noisy_moons.csv');
+    P=importdata('../data/spiral.csv');
+    Pwclass = P
+    K = length(unique(Pwclass(:,3))) % it can be manually set also!
+    P = P(:,1:2)
     
 	%'Random'graph generation with n=9, p=0.3
-    G= random_graph_gen(9,0.3);    
+    Nnodes = 3;
+    G= random_graph_gen(Nnodes, 0.3);    
     fprintf('generated random graph\n');
    
     %partitioning data into 9 local sets using 'weighted' partition method
     [N, dim] = size(P);
-    indn=get_partition('weighted', N, 9, sum(G), 1, P);
+    indn=get_partition('weighted', N, Nnodes, sum(G), 1, P);
     
     %Distributed PCA of the data with t_vector = [14]
-    proj_vector = distributed_pca(P, [14], 9, indn);
-    lowDim_P = P*proj_vector{1};
+    %%proj_vector = distributed_pca(P, [14], 9, indn);
+    %%lowDim_P = P*proj_vector{1};
+    lowDim_P = P
+    
     
     %Distributed_coreset construction and lloyd's k-means impementation
-    %for the PCA data with k=10, t=5000
-    [S,w] = distributed_coreset(lowDim_P, indn, 9, 10, 5000);
-    [centers_coreset]=lloyd_kmeans(10, S, w);
+    %for the PCA data with k=10, t=10% of the size of the data
+    [S,w] = distributed_coreset(lowDim_P, indn, Nnodes, K, floor(0.1*N) );
+    [centers_coreset]=lloyd_kmeans(K, S, w);
+    
+    %% Finding the closest center to each coreset point
+    dims = size(S);
+    labeledS = zeros(dims(1), dims(2) + 1);
+    labeledS(:,1:2) = S;
+    
+    for i=1:dims(1)
+        min_d = inf
+        min_c = -1
+        for c=1:size(centers_coreset,1)
+            
+        end
+    end
+    %%
     
     centers_dim = centers_coreset*proj_vector{1}';
     y = sqDistance(centers_dim, P);
