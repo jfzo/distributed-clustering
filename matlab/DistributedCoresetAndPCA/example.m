@@ -9,8 +9,23 @@
 	%P=importdata('pendigits.mat');
     %P=importdata('../data/noisy_circles.csv');
     %P=importdata('../data/noisy_moons.csv');
-    P=importdata('../data/spiral.csv');
+    %P=importdata('../data/spiral.csv');
+            
+    
+    %%
+    P=importdata('../data/crime_rate.csv');
     Pwclass = P
+    Z = zeros(size(Pwclass));
+    Z(1:50,:) = Pwclass(Pwclass(:,3)==3,:);
+    Z(51:100,1) = Pwclass(Pwclass(:,3)==2,1)-0.2;
+    Z(51:100,2) = Pwclass(Pwclass(:,3)==2,2)-0.2;
+    Z(51:100,3) = zeros(50,1)+1
+    Z(101:end,:) = Pwclass(Pwclass(:,3)==1,:)
+    gscatter(Z(:,1),Z(:,2),Z(:,3))
+    Pwclass = Z
+    %%
+        
+    
     K = length(unique(Pwclass(:,3))) % it can be manually set also!
     P = P(:,1:2)
     
@@ -31,7 +46,7 @@
     
     %Distributed_coreset construction and lloyd's k-means impementation
     %for the PCA data with k=10, t=10% of the size of the data
-    [S,w] = distributed_coreset(lowDim_P, indn, Nnodes, K, floor(0.1*N) );
+    [S,w] = distributed_coreset(lowDim_P, indn, Nnodes, K, floor(0.5*N) );
     [centers_coreset]=lloyd_kmeans(K, S, w);
     
     %% Finding the closest center to each coreset point
@@ -46,6 +61,12 @@
             
         end
     end
+    
+    % Rutina de visualoizacion
+    hold on
+    plot(S(:,1), S(:,2), 'o')
+    plot(centers_coreset(:,1), centers_coreset(:,2), 'x')
+    gscatter(Z(:,1),Z(:,2),Z(:,3))
     %%
     
     centers_dim = centers_coreset*proj_vector{1}';
