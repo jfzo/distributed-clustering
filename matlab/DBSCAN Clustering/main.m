@@ -17,18 +17,18 @@ close all;
 
 %% Load Data
 
-data=load('mydata');
-X=data.X;
+data=load('pendigits');
+X=data.D;
 
 
 %% Run DBSCAN Clustering Algorithm
 
 epsilon=0.5;
-MinPts=10;
+MinPts=1000;
 IDX=DBSCAN(X,epsilon,MinPts);
 
 
 %% Plot Results
 
-PlotClusterinResult(X, IDX);
+PlotClusterinResult(data.D(:,4:5), IDX);
 title(['DBSCAN Clustering (\epsilon = ' num2str(epsilon) ', MinPts = ' num2str(MinPts) ')']);
