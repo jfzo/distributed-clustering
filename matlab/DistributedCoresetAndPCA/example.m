@@ -48,7 +48,7 @@ path('/Users/jz/git/distributed-clustering/matlab/DistributedCoresetAndPCA', pat
     
     %Distributed_coreset construction and lloyd's k-means impementation
     %for the PCA data with k=10, t=10% of the size of the data
-    [S,w] = distributed_coreset(lowDim_P, indn, Nnodes, K, floor(0.4*N) );
+    [S,w] = distributed_coreset(lowDim_P, indn, Nnodes, K, floor(0.2*N) );
     [centers_coreset]=lloyd_kmeans(K, S, w);
     [centers_entire]=lloyd_kmeans(K, Z(:,1:2));
     
