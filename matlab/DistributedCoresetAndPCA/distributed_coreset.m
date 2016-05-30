@@ -84,6 +84,8 @@ function [Si,wi]=distributed_coreset_on_node(Di,indi,ti,t, centersi,costi,total_
 % Si: the coreset points
 % wi: the weights for the coreset points
 
+    sprintf('[distributed_coreset_on_node] %d x %d', size(Di,1),size(Di,2))
+
     % sample
     [Ni,d]=size(Di);
 	if Ni<=0

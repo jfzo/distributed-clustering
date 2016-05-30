@@ -10,10 +10,12 @@
     %P=importdata('../data/noisy_circles.csv');
     %P=importdata('../data/noisy_moons.csv');
     %P=importdata('../data/spiral.csv');
-            
+    %Pwclass = P        
     
-    %%
-    P=importdata('../data/crime_rate.csv');
+%%
+path('/Users/jz/git/distributed-clustering/matlab/DistributedCoresetAndPCA', path())
+%%
+    P=importdata('../data/vary-density.csv');
     Pwclass = P
     Z = zeros(size(Pwclass));
     Z(1:50,:) = Pwclass(Pwclass(:,3)==3,:);
@@ -30,7 +32,7 @@
     P = P(:,1:2)
     
 	%'Random'graph generation with n=9, p=0.3
-    Nnodes = 3;
+    Nnodes = 6;
     G= random_graph_gen(Nnodes, 0.3);    
     fprintf('generated random graph\n');
    
@@ -41,13 +43,14 @@
     %Distributed PCA of the data with t_vector = [14]
     %%proj_vector = distributed_pca(P, [14], 9, indn);
     %%lowDim_P = P*proj_vector{1};
-    lowDim_P = P
+    lowDim_P = P;
     
     
     %Distributed_coreset construction and lloyd's k-means impementation
     %for the PCA data with k=10, t=10% of the size of the data
-    [S,w] = distributed_coreset(lowDim_P, indn, Nnodes, K, floor(0.5*N) );
+    [S,w] = distributed_coreset(lowDim_P, indn, Nnodes, K, floor(0.4*N) );
     [centers_coreset]=lloyd_kmeans(K, S, w);
+    [centers_entire]=lloyd_kmeans(K, Z(:,1:2));
     
     %% Finding the closest center to each coreset point
     dims = size(S);
@@ -55,18 +58,43 @@
     labeledS(:,1:2) = S;
     
     for i=1:dims(1)
-        min_d = inf
-        min_c = -1
+        min_d = inf;
+        min_c = -1;
         for c=1:size(centers_coreset,1)
-            
+            curr_d = sum((S(i,:)-centers_coreset(c,:)).^2);
+            if curr_d < min_d
+                min_d = curr_d;
+                min_c = c;
+            end
         end
+        labeledS(i,3) = min_c;
     end
     
-    % Rutina de visualoizacion
-    hold on
-    plot(S(:,1), S(:,2), 'o')
-    plot(centers_coreset(:,1), centers_coreset(:,2), 'x')
-    gscatter(Z(:,1),Z(:,2),Z(:,3))
+    % Rutina de visualizacion
+    figure1 = figure('PaperSize',[20.98404194812 29.67743169791]);
+    axes1 = axes('Parent',figure1);
+    hold(axes1,'all');
+
+    plot(S(:,1), S(:,2),'Parent',axes1,'MarkerFaceColor',...
+    [0.749019622802734 0.749019622802734 0],'MarkerSize',8,'Marker','+','LineStyle','none',...
+    'DisplayName','Coreset data');
+
+    plot(centers_coreset(:,1), centers_coreset(:,2),'Parent',axes1,'MarkerSize',10,'Marker',...
+    'x','LineWidth',4,'LineStyle','none','Color',[0.87058824300766 0.490196079015732 0],...
+    'DisplayName','Coreset centroids');
+
+    plot(centers_entire(:,1), centers_entire(:,2),'Parent',axes1,'MarkerSize',8,'Marker',...
+    '*','LineWidth',4,'LineStyle','none','Color',[0 0 0],...
+    'DisplayName','Real centroids');
+    
+    %gscatter(Z(:,1),Z(:,2),Z(:,3));
+    
+    line(Pwclass(Pwclass(:,3)==1,1),Pwclass(Pwclass(:,3)==1,2),'Parent',axes1,'Marker','square','LineStyle','none',...
+    'Color',[1 0 0],'DisplayName','Orig.Data, class +');
+
+    line(Pwclass(Pwclass(:,3)==3,1),Pwclass(Pwclass(:,3)==3,2),'Parent',axes1,'MarkerSize',8,'Marker','v',...
+    'LineStyle','none','Color',[0 1 1],'DisplayName','Orig.Data, class -');
+    legend(axes1,'show');
     %%
     
     centers_dim = centers_coreset*proj_vector{1}';
