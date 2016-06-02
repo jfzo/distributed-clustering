@@ -15,21 +15,22 @@
 %%
 path('/Users/jz/git/distributed-clustering/matlab/DistributedCoresetAndPCA', path())
 %%
+    clear;
     P=importdata('../data/vary-density.csv');
-    Pwclass = P
+    Pwclass = P;
     Z = zeros(size(Pwclass));
     Z(1:50,:) = Pwclass(Pwclass(:,3)==3,:);
     Z(51:100,1) = Pwclass(Pwclass(:,3)==2,1)-0.2;
     Z(51:100,2) = Pwclass(Pwclass(:,3)==2,2)-0.2;
-    Z(51:100,3) = zeros(50,1)+1
-    Z(101:end,:) = Pwclass(Pwclass(:,3)==1,:)
+    Z(51:100,3) = zeros(50,1)+1;
+    Z(101:end,:) = Pwclass(Pwclass(:,3)==1,:);
     gscatter(Z(:,1),Z(:,2),Z(:,3))
-    Pwclass = Z
+    Pwclass = Z;
+    P = Z(:,1:2);
     %%
-        
+      
     
-    K = length(unique(Pwclass(:,3))) % it can be manually set also!
-    P = P(:,1:2)
+    K = length(unique(Pwclass(:,3))); % it can be manually set also!    
     
 	%'Random'graph generation with n=9, p=0.3
     Nnodes = 6;
@@ -45,12 +46,13 @@ path('/Users/jz/git/distributed-clustering/matlab/DistributedCoresetAndPCA', pat
     %%lowDim_P = P*proj_vector{1};
     lowDim_P = P;
     
-    
+    global LOC_CORESET_CENTERS
+    LOC_CORESET_CENTERS = zeros(Nnodes*K, 2);
     %Distributed_coreset construction and lloyd's k-means impementation
     %for the PCA data with k=10, t=10% of the size of the data
-    [S,w] = distributed_coreset(lowDim_P, indn, Nnodes, K, floor(0.2*N) );
+    [S,w] = distributed_coreset(lowDim_P, indn, Nnodes, K, floor(0.1*N) );
     [centers_coreset]=lloyd_kmeans(K, S, w);
-    [centers_entire]=lloyd_kmeans(K, Z(:,1:2));
+    [centers_entire]=lloyd_kmeans(K, P);
     
     %% Finding the closest center to each coreset point
     dims = size(S);
@@ -70,11 +72,24 @@ path('/Users/jz/git/distributed-clustering/matlab/DistributedCoresetAndPCA', pat
         labeledS(i,3) = min_c;
     end
     
-    % Rutina de visualizacion
+%% Visualización
+    local_centers=zeros(Nnodes*K, 2);
+    j=1;
+    for i=1:Nnodes
+        local_centers(j,:) = LOC_CORESET_CENTERS{i}(1,:);
+        j=j+1;
+        local_centers(j,:) = LOC_CORESET_CENTERS{i}(2,:);
+        j=j+1;
+    end
+    
     figure1 = figure('PaperSize',[20.98404194812 29.67743169791]);
     axes1 = axes('Parent',figure1);
     hold(axes1,'all');
 
+    line(local_centers(:,1),local_centers(:,2),'Parent',axes1,'MarkerFaceColor',[0 1 0],'Marker','diamond','LineStyle','none',...
+    'Color',[1 0.5 0.5],'MarkerSize',10,'DisplayName','Local node centers');
+
+    
     plot(S(:,1), S(:,2),'Parent',axes1,'MarkerFaceColor',...
     [0.749019622802734 0.749019622802734 0],'MarkerSize',8,'Marker','+','LineStyle','none',...
     'DisplayName','Coreset data');
@@ -95,7 +110,7 @@ path('/Users/jz/git/distributed-clustering/matlab/DistributedCoresetAndPCA', pat
     line(Pwclass(Pwclass(:,3)==3,1),Pwclass(Pwclass(:,3)==3,2),'Parent',axes1,'MarkerSize',8,'Marker','v',...
     'LineStyle','none','Color',[0 1 1],'DisplayName','Orig.Data, class -');
     legend(axes1,'show');
-    %%
+%%
     
     centers_dim = centers_coreset*proj_vector{1}';
     y = sqDistance(centers_dim, P);

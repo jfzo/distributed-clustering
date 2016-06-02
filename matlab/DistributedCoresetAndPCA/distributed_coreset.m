@@ -31,6 +31,9 @@ function [S,w,portion_ind]=distributed_coreset(D,indn,n,k,t,constant_approx_algo
     end
     
     [S,w,portion_ind]=distributed_coreset_by_solution(D,indn,n, t, centers, ind, cost, total_cost);
+    global LOC_CORESET_CENTERS
+    LOC_CORESET_CENTERS=centers;
+    
     
 end
 
@@ -93,10 +96,12 @@ function [Si,wi]=distributed_coreset_on_node(Di,indi,ti,t, centersi,costi,total_
         Si=Di;
         wi=ones(Ni,1);
         return;
-	end
-	
+    end
+    
+    
 	sample_weight=consistify_sample_weight(costi);
     Si_ind=randsample(Ni,ti,true,sample_weight);
+    
     Si=zeros(ti+size(centersi, 1), d);
     Si(1:ti,:)=Di(Si_ind,:);
     Si((ti+1):ti+size(centersi, 1),:)=centersi;
