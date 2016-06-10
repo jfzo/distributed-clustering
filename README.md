@@ -1,8 +1,9 @@
 # distributed-clustering
 
 ### TODO
-    * Muestreo de PCACoreset __debiera__ funcionar solo cuando hay densidad uniforme
-    * Con la data adecuada este muestreo _NO_ debiera  funcionar bien
-    * Plt. Al mejorar el muestreo incorporando información de la densidad podríamos 
-      no solo mejorar el clustering sino también robustificarlo. Esto debido a que métodos
+
+   * Muestreo de PCACoreset __debiera__ funcionar solo cuando hay densidad uniforme
+   * Con la data adecuada este muestreo _NO_ debiera  funcionar bien
+   * Plt. Al mejorar el muestreo incorporando informaciÃ³n de la densidad podrÃ­amos 
+      no solo mejorar el clustering sino tambiÃ©n robustificarlo. Esto debido a que mÃ©todos
       de clustering basados en densidad han sido exitosamento utilizados para eliminar outliers.
