@@ -5,4 +5,4 @@
 
     `./near_neighbor_similarity.py -k 10 -i 20ng.csv -o 20ng_10nnbrs.csv`
     
-    ![Cluto's sparse-matrix format](cluto_matrix.png "Cluto's sparse matrix")
+    ![Cluto's sparse-matrix format](cluto_sparse_matrix.png "Cluto's sparse matrix")
