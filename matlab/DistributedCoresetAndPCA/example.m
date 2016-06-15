@@ -13,7 +13,7 @@
     %Pwclass = P        
     
 %%
-path('/Users/jz/git/distributed-clustering/matlab/DistributedCoresetAndPCA', path())
+path('../DistributedCoresetAndPCA', path())
 %%
     clear;
     P=importdata('../data/vary-density.csv');

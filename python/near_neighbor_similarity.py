@@ -49,7 +49,7 @@ parser.add_argument("-o","--outfile", type=str, help="Path to the output file wh
 parser.add_argument("-i","--inputfile", type=str, help="Path to the input file in Cluto's format where the sparse vectors are stored")
 args = parser.parse_args()
 
-if not args.nnbrs or not args.outfile:
+if not args.nnbrs or not args.outfile or not args.inputfile:
     print "Usage: ./near_neighbor_similarity -k <near neighbor value> -i <path to the input file> -o <path to output file>"
     sys.exit
 
