@@ -66,7 +66,7 @@ LOC_CORESET_CENTERS = zeros(Nnodes*K, 2);
 [centers_entire]=lloyd_kmeans(K, P);
     
 %% Using DBSCAN over original data
-path('/Users/jz/git/distributed-clustering/matlab/DBSCAN', path())
+path('../DBSCAN', path())
 epsilon=2;
 MinPts=2;
 IDX=DBSCAN(P,epsilon,MinPts);
