@@ -1,7 +1,17 @@
-function [ labels, weights ] = SpectralClustering( P, K, sigma )
-%UNTITLED Summary of this function goes here
-%   Detailed explanation goes here
-    A = pdist2(P,P);
+function [centers, labels, weights ] = SpectralClustering( P, K, sigma, with_distance )
+%SpectralClustering Computes the spectral clustering algorithm
+%   Accepts 3 or 4 parameters where
+% 1st denotes the data or the distance matrix (the fourth parameter must be
+% set to true in this case)
+% 2nd denotes the number of clusters to identify
+% 3rd denotes the $\sigma$ parameter of the smoothing operation: exp(-(A.^2)/( 2 * sigma^2 ) )
+    
+    if nargin == 4 % (with_distance is set) Then P is a distance matrix...
+        A = P;
+    else
+        A = pdist2(P,P);
+    end
+    
     A = exp(-(A.^2)/( 2 * sigma^2 ) );
     for i=1:size(A,1)   
         A(i,i) = 0;
@@ -10,7 +20,12 @@ function [ labels, weights ] = SpectralClustering( P, K, sigma )
     D = sum(A, 2);
     D_A = diag((D.^-1).^(1/2));
     L = D_A * A * D_A;
-    [X, eVal] = eigs(L, K);
+    
+    [X, eVal] = eigs(L, K); % X \in \R^{n\times K}
+    
+    %opts.tol = 1e-3; 
+    %[X, eVal] = eigs(L, K, 'lr', opts); 
+
 
     Y = diag(1./(sum(X.^2,2).^(1/2)) ) * X;
     [centers]=lloyd_kmeans(K, Y);

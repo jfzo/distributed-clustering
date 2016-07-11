@@ -1,7 +1,8 @@
 path('../DistributedCoresetAndPCA', path())
+
 %%
 clear;
-P=importdata('../data/spiral.csv');
+P=importdata('spiral.csv');
 Pwclass = P;
 P=P(:,1:2);
 
@@ -10,15 +11,30 @@ sigma_2 = 0.1;
 NOISE = mvnrnd([0,0], [sigma_1,0;0,sigma_2], round(size(P,1)));
 %P = vertcat(P, NOISE);
 P = P + NOISE;
-
 %%
-max_global_score=0;
+clear;
+clc;
+Pwclass=importdata('noisy_circles.csv');
+gscatter(Pwclass(:,1),Pwclass(:,2),Pwclass(:,3))
+% adding noise
+P = Pwclass(:,1:2);
+%%
+K = length(unique(Pwclass(:,3))); % it can be manually set also!
+A = pdist2(P,P);
+
 N = length(Pwclass(:,3));
 RLABELS = unique(Pwclass(:,3));
+max_global_score=0;
 best_param=-1;
-for i=0.65:0.01:3
-    [labels, W] = SpectralClustering(P, 3, i);
-
+for i=0.75:0.01:3
+    try
+    %[labels, W] = SpectralClustering(P, 3, i);
+    [~, labels, ~] = SpectralClustering(A, K, i, true);
+    
+    catch ME
+        display(sprintf('Errors occurred when computing EVals for parameter sigma=%d',i));
+        continue;
+    end
     sum_p = 0;
     sum_e = 0;
     
@@ -54,6 +70,15 @@ for i=0.65:0.01:3
     end
 end
 
-[labels, W] = SpectralClustering(P, 3, best_param);
+%[labels, W] = SpectralClustering(P, 3, best_param);
+
+%A = pdist2(P,P);
+
+[centers, labels, W] = SpectralClustering(A, K, best_param, true);
+%%
+% 
+% $$e^{\pi i} + 1 = 0$$
+% 
+
 gscatter(P(:,1),P(:,2),labels(:,1))
 %%
