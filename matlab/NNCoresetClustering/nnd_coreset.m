@@ -1,4 +1,4 @@
-function [S,w]=nnd_coreset(D,indn,n,k,t)
+function [S,w]=nnd_coreset(D,indn,n,k,t,global_sigma)
 %Build distributed coreset
 % input
 % D: data matrix, each row is a data point
@@ -19,7 +19,7 @@ function [S,w]=nnd_coreset(D,indn,n,k,t)
     for i=1:n        
         %[centers{i}, ind{i}, cost{i}]=single_swap(k,D(indn==i,:));
         % OJO : Estos centroides estan en un espacio K-dimensional y no en el mismo de los datos.
-        [centers{i}, ind{i}, cost{i}] = SpectralClustering(D(indn==i,:), k, 0.75);
+        [centers{i}, ind{i}, cost{i}] = SpectralClustering(D(indn==i,:), k, global_sigma);
         display( sprintf('Tamaño %dx%d',size(centers{i},1),size(centers{i},2)) );
         total_cost=total_cost+sum(cost{i});
     end

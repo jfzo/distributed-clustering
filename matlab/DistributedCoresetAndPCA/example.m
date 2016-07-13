@@ -93,8 +93,8 @@ gscatter(labeledS(:,1),labeledS(:,2),labeledS(:,3))
 
 %% Building the final clusters with spectral clustering 
 clc;
-[centers, labels, W] = SpectralClustering(S, K, 0.8);
-gscatter(labeledS(:,1),labeledS(:,2),labels)
+[centers, labelsSC, W] = SpectralClustering(S, K, 0.77);
+gscatter(S(:,1),S(:,2),labelsSC)
 
 
 

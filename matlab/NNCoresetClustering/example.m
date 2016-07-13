@@ -39,9 +39,9 @@ indn=get_partition('weighted', N, Nnodes, sum(G), 1, P);
 %%lowDim_P = P*proj_vector{1};
 lowDim_P = P;
 
-[S,w] = nnd_coreset(lowDim_P, indn, Nnodes, K, floor(0.2*N) );
+[S,w] = nnd_coreset(lowDim_P, indn, Nnodes, K, floor(0.2*N), 0.9 );
 
-[centers, labels, W] = SpectralClustering(S, K, 0.1);
+[centers, labels, W] = SpectralClustering(S, K, 0.77);
 
 gscatter(S(:,1),S(:,2),labels)
     
