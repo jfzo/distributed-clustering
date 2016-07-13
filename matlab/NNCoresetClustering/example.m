@@ -15,6 +15,13 @@ NOISE = mvnrnd([0,0], [sigma_1,0;0,sigma_2], round(size(P,1)));
 P = P + NOISE;
 
 gscatter(P(:,1),P(:,2),Pwclass(:,3))
+%%
+clear;
+clc;
+Pwclass=importdata('noisy_circles.csv'); % Use parameter $\sigma=0.1$
+gscatter(Pwclass(:,1),Pwclass(:,2),Pwclass(:,3))
+% adding noise
+P = Pwclass(:,1:2);
 %% Coreset routine    
 K = length(unique(Pwclass(:,3))); % it can be manually set also!    
 
@@ -32,20 +39,11 @@ indn=get_partition('weighted', N, Nnodes, sum(G), 1, P);
 %%lowDim_P = P*proj_vector{1};
 lowDim_P = P;
 
-global LOC_CORESET_CENTERS
-LOC_CORESET_CENTERS = zeros(Nnodes*K, 2);
-%Distributed_coreset construction and lloyd's k-means impementation
-%for the PCA data with k=10, t=10% of the size of the data
+[S,w] = nnd_coreset(lowDim_P, indn, Nnodes, K, floor(0.2*N) );
 
-%[S,w] = distributed_coreset(lowDim_P, indn, Nnodes, K, floor(0.5*N) );
-[S,w] = nnd_coreset(lowDim_P, indn, Nnodes, K, floor(0.4*N) );
-
-[centers, labels, W] = SpectralClustering(S, K, 1.2);
+[centers, labels, W] = SpectralClustering(S, K, 0.1);
 
 gscatter(S(:,1),S(:,2),labels)
-
-%[centers_coreset]=lloyd_kmeans(K, S, w);
-%[centers_entire]=lloyd_kmeans(K, P);
     
 %% Finding the closest center to each coreset point
 

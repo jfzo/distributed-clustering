@@ -14,7 +14,7 @@ P = P + NOISE;
 %%
 clear;
 clc;
-Pwclass=importdata('noisy_circles.csv');
+Pwclass=importdata('noisy_circles.csv'); % Use parameter $\sigma=0.1$
 gscatter(Pwclass(:,1),Pwclass(:,2),Pwclass(:,3))
 % adding noise
 P = Pwclass(:,1:2);

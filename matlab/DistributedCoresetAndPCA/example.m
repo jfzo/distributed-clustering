@@ -30,7 +30,7 @@ path('./DistributedCoresetAndPCA', path())
 %% Spiral (2D data)
 clear;
 Pwclass=importdata('spiral.csv');
-gscatter(Pwclass(:,1),Pwclass(:,2),Pwclass(:,3))
+gscatter(Pwclass(:,1),Pwclass(:,2),Pwclasssss(:,3))
 % adding noise
 P = Pwclass(:,1:2);
 sigma_1 = 0.1;
@@ -40,6 +40,13 @@ NOISE = mvnrnd([0,0], [sigma_1,0;0,sigma_2], round(size(P,1)));
 P = P + NOISE;
 
 gscatter(P(:,1),P(:,2),Pwclass(:,3))
+%%
+clear;
+clc;
+Pwclass=importdata('noisy_circles.csv'); % Use parameter $\sigma=0.1$
+%gscatter(Pwclass(:,1),Pwclass(:,2),Pwclass(:,3))
+% adding noise
+P = Pwclass(:,1:2);
 %% Coreset routine    
 K = length(unique(Pwclass(:,3))); % it can be manually set also!    
 
@@ -61,12 +68,41 @@ global LOC_CORESET_CENTERS
 LOC_CORESET_CENTERS = zeros(Nnodes*K, 2);
 %Distributed_coreset construction and lloyd's k-means impementation
 %for the PCA data with k=10, t=10% of the size of the data
-[S,w] = distributed_coreset(lowDim_P, indn, Nnodes, K, floor(0.5*N) );
-
+[S,w] = distributed_coreset(lowDim_P, indn, Nnodes, K, floor(0.2*N) );
+%% Visualzation of the coreset and its labels set with kmeans
 [centers_coreset]=lloyd_kmeans(K, S, w);
-[centers_entire]=lloyd_kmeans(K, P); % It has the centerd of the whole data
-    
+
+dims = size(S);
+labeledS = zeros(dims(1), dims(2) + 1);
+labeledS(:,1:2) = S;
+
+for i=1:dims(1)
+    min_d = inf;
+    min_c = -1;
+    for c=1:size(centers_coreset,1)
+        curr_d = sum((S(i,:)-centers_coreset(c,:)).^2);
+        if curr_d < min_d
+            min_d = curr_d;
+            min_c = c;
+        end
+    end
+    labeledS(i,3) = min_c;
+end
+
+gscatter(labeledS(:,1),labeledS(:,2),labeledS(:,3))
+
+%% Building the final clusters with spectral clustering 
+clc;
+[centers, labels, W] = SpectralClustering(S, K, 0.8);
+gscatter(labeledS(:,1),labeledS(:,2),labels)
+
+
+
+
+
 %% Finding the closest center to each coreset point
+[centers_entire]=lloyd_kmeans(K, P); % It has the centerd of the whole data
+
 local_centers=zeros(Nnodes*K, 2);
 j=1;
 for i=1:Nnodes
