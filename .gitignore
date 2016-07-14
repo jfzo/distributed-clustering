@@ -1,1 +1,7 @@
 *~
+
+*.m~
+
+matlab/Spectral/.DS_Store
+
+*.swp
