@@ -51,7 +51,7 @@ P = Pwclass(:,1:2);
 K = length(unique(Pwclass(:,3))); % it can be manually set also!    
 
 %'Random'graph generation with n=9, p=0.3
-Nnodes = 3;
+Nnodes = 4;
 G= random_graph_gen(Nnodes, 0.3);    
 fprintf('generated random graph\n');
 
