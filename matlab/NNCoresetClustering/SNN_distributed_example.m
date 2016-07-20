@@ -69,7 +69,7 @@ parfor s=1:Nnodes
 end
 % remember to filter the near ones.
 %% sampling core-points from each node
-PCT_SAMPLE = 0.2;
+PCT_SAMPLE = 0.4;
 SAMPLED_CORE_PTS = cell(Nnodes, 1);
 parfor s=1:Nnodes
     %find(CORE_PTS{s} == 1)
@@ -81,9 +81,9 @@ parfor s=1:Nnodes
         if clst_s(c) == 0
             continue
         end 
-        display(sprintf('[%d] Valor de c=%d \n', s, clst_s(c)));
+        %display(sprintf('[%d] Valor de c=%d \n', s, clst_s(c)));
         N_c = length(find(CORE_CLST{s} == clst_s(c)));
-        display(sprintf('Valor de N_c=%d \n', N_c));
+        %display(sprintf('Valor de N_c=%d \n', N_c));
         w_c = ((1 - ( N_c/N_s ) )/2) / N_c;
         PTS_s_W(CORE_CLST{s} == clst_s(c)) = w_c;
     end
@@ -91,7 +91,7 @@ parfor s=1:Nnodes
     SAMPLED_CORE_PTS{s} = randsample(length(CORE_CLST{s}), round(PCT_SAMPLE*N_s) ,true, PTS_s_W);
 end
 
-%% Centralize the transmitted core-points 
+%% Centralizing the transmitted core-points into a single dataset 
 P = Pwclass(:,1:2);
 %M_1 = P(indn==1,:);
 % Perform SNN-clustering over the sampled core points.
@@ -110,6 +110,45 @@ for s=2:Nnodes
     CT_DATA(offset:offset+length(SAMPLED_CORE_PTS{s})-1,:) = localdata(SAMPLED_CORE_PTS{s},:);
     offset = offset + length(SAMPLED_CORE_PTS{s});    
 end
+
+%% Apply SNN-clustering over CT_DATA
+
+K = 30;
+[KNN_CT, SNN_CT] = compute_knn_snn(CT_DATA, K);
+
+% computing SNN density
+Eps = 20;
+DST_CT = zeros(length(SNN_CT) + 1, 1); %array to store density
+for i=1:length(SNN_CT)
+    dense_ng = find(SNN_CT{i} > Eps);
+    DST_CT(i) = DST_CT(i) + length(dense_ng);
+    for dense_item=1:length(dense_ng) %updates the counters of the neighb.
+        DST_CT(i+dense_ng(dense_item)) = DST_CT(i+dense_ng(dense_item)) + 1;
+    end
+end
+
+% computing CORE points
+MinPts = 10;
+% snn similarity function: e.g. snn_sim(SNN{1},7,1)
+snn_sim = @(SNN_info, i, j) SNN_info{min(i,j)}(abs(i-j));
+CORE_PTS_CT = DST_CT > MinPts;
+CORE_CLST_CT = zeros(length(DST_CT),1);
+core_points = find(DST_CT > MinPts);
+clst_id = 0;
+for i=1:size(core_points, 1)-1 %identifying clusters
+    if CORE_CLST_CT(core_points(i)) == 0
+        clst_id = clst_id + 1;
+        CORE_CLST_CT(core_points(i)) = clst_id;
+    end
+    for j=i+1:size(core_points, 1)
+        if snn_sim(SNN_CT,core_points(i),core_points(j)) >= Eps
+            CORE_CLST_CT(core_points(j)) = CORE_CLST_CT(core_points(i));
+        end
+    end
+end
+
+scatter(CT_DATA(CORE_PTS_CT,1), CT_DATA(CORE_PTS_CT,2), 5, CORE_CLST_CT(CORE_PTS_CT),'o')
+
 
 %% Plotting for 4 nodes
 
