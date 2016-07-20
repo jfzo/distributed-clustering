@@ -49,7 +49,7 @@ snn_sim = @(SNN_info, i, j) SNN_info{min(i,j)}(abs(i-j));
 %DST{1} > MinPts
 CORE_PTS = cell(Nnodes, 1);
 CORE_CLST = cell(Nnodes, 1);
-parfor s=1:Nnodes 
+parfor s=1:Nnodes
     CORE_PTS{s} = DST{s} > MinPts;
     CORE_CLST{s} = zeros(length(DST{s}),1);
     core_points = find(DST{s} > MinPts);
@@ -68,6 +68,49 @@ parfor s=1:Nnodes
     end
 end
 % remember to filter the near ones.
+%% sampling core-points from each node
+PCT_SAMPLE = 0.2;
+SAMPLED_CORE_PTS = cell(Nnodes, 1);
+parfor s=1:Nnodes
+    %find(CORE_PTS{s} == 1)
+    PTS_s_W = zeros(length(CORE_PTS{s}), 1);
+    N_s = length(find(CORE_CLST{s} ~= 0));
+    
+    clst_s = unique(CORE_CLST{s});
+    for c=1:length(clst_s)
+        if clst_s(c) == 0
+            continue
+        end 
+        display(sprintf('[%d] Valor de c=%d \n', s, clst_s(c)));
+        N_c = length(find(CORE_CLST{s} == clst_s(c)));
+        display(sprintf('Valor de N_c=%d \n', N_c));
+        w_c = ((1 - ( N_c/N_s ) )/2) / N_c;
+        PTS_s_W(CORE_CLST{s} == clst_s(c)) = w_c;
+    end
+    %display( sum(PTS_s_W) );
+    SAMPLED_CORE_PTS{s} = randsample(length(CORE_CLST{s}), round(PCT_SAMPLE*N_s) ,true, PTS_s_W);
+end
+
+%% Centralize the transmitted core-points 
+P = Pwclass(:,1:2);
+%M_1 = P(indn==1,:);
+% Perform SNN-clustering over the sampled core points.
+N_sampled = 0;
+for s=1:Nnodes
+    N_sampled = N_sampled + length(SAMPLED_CORE_PTS{s});
+end
+
+CT_DATA = zeros(N_sampled, 2);
+
+localdata = P(indn==1,:);
+CT_DATA(1:length(SAMPLED_CORE_PTS{1}),:) = localdata(SAMPLED_CORE_PTS{1},:);
+offset = length(SAMPLED_CORE_PTS{1}) + 1;
+for s=2:Nnodes    
+    localdata = P(indn==s,:);
+    CT_DATA(offset:offset+length(SAMPLED_CORE_PTS{s})-1,:) = localdata(SAMPLED_CORE_PTS{s},:);
+    offset = offset + length(SAMPLED_CORE_PTS{s});    
+end
+
 %% Plotting for 4 nodes
 
 figure
