@@ -28,7 +28,9 @@ parfor s=1:Nnodes
 end
 
 %% Counting close points (in terms of SNN similarity) for each point ~ Density
-Eps = 35;
+Eps = 34;
+
+Nnodes = 4;
 DST = cell(Nnodes, 1);
 parfor s=1:Nnodes 
     DST{s} = zeros(length(SNN{s}) + 1, 1); %array to store density
@@ -69,7 +71,7 @@ parfor s=1:Nnodes
 end
 % remember to filter the near ones.
 %% sampling core-points from each node
-PCT_SAMPLE = 0.4;
+PCT_SAMPLE = 0.3;
 SAMPLED_CORE_PTS = cell(Nnodes, 1);
 parfor s=1:Nnodes
     %find(CORE_PTS{s} == 1)
