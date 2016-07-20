@@ -27,7 +27,7 @@ parfor s=1:Nnodes
     [KNN{s}, SNN{s}] = compute_knn_snn(localdata, K);
 end
 
-%% computing SNN density
+%% Counting close points (in terms of SNN similarity) for each point ~ Density
 Eps = 35;
 DST = cell(Nnodes, 1);
 parfor s=1:Nnodes 
@@ -113,11 +113,11 @@ end
 
 %% Apply SNN-clustering over CT_DATA
 
-K = 30;
+K = 50;
 [KNN_CT, SNN_CT] = compute_knn_snn(CT_DATA, K);
 
-% computing SNN density
-Eps = 20;
+% Counting close points (in terms of SNN similarity) for each point ~ Density
+Eps = 15;
 DST_CT = zeros(length(SNN_CT) + 1, 1); %array to store density
 for i=1:length(SNN_CT)
     dense_ng = find(SNN_CT{i} > Eps);
@@ -127,8 +127,8 @@ for i=1:length(SNN_CT)
     end
 end
 
-% computing CORE points
-MinPts = 10;
+% Identifying CORE points
+MinPts = 30;
 % snn similarity function: e.g. snn_sim(SNN{1},7,1)
 snn_sim = @(SNN_info, i, j) SNN_info{min(i,j)}(abs(i-j));
 CORE_PTS_CT = DST_CT > MinPts;
