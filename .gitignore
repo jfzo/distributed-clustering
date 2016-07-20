@@ -4,6 +4,6 @@
 
 matlab/Spectral/.DS_Store
 
-.DS_Stor*
-
+*.DS_Store
+*.*~
 *.swp
