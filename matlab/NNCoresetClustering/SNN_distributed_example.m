@@ -183,7 +183,7 @@ end
 
 % Export core and non-core/non-noise points with their labels 
 
-[A,B] = SNNClustering( CT_DATA, K, Eps, MinPts);
+%[A,B] = SNNClustering( CT_DATA, K, Eps, MinPts);
 %% Plotting for 4 nodes
 
 figure
