@@ -149,9 +149,41 @@ for i=1:size(core_points, 1)-1 %identifying clusters
     end
 end
 
+% Discarding Noise points (marked with -1 in its entry in CORE_PTS_CT)
+non_core = find(CORE_PTS_CT == 0 );
+core = find(CORE_PTS_CT == 1);
+core_clst_id = CORE_CLST_CT; % copy made to enable parallel loop
+for i=1:length(non_core)
+    % find nearest core point
+    nearest_sim = 0;
+    nearest_core = -1;
+    for j=1:length(core)
+        j_sim = snn_sim(SNN_CT, non_core(i), core(j));
+        if j_sim > nearest_sim
+            nearest_sim = j_sim;
+            nearest_core = core(j);
+        end
+    end
+    % if the snn similarity is lower than Eps => discard the point    
+    if nearest_sim < Eps
+        CORE_PTS_CT(non_core(i)) = -1;
+    else % otherwise, label the point with the nearest core point label.
+        CORE_CLST_CT(non_core(i)) = core_clst_id(nearest_core);
+    end
+end
+
+
+% Plotting core points with their identified labels
 scatter(CT_DATA(CORE_PTS_CT,1), CT_DATA(CORE_PTS_CT,2), 5, CORE_CLST_CT(CORE_PTS_CT),'o')
+% Plotting non-core/non-noise points with their identified labels
+non_core = find(CORE_PTS_CT ~= 0 );
+if isempty(non_core) > 0
+    scatter(CT_DATA(non_core,1), CT_DATA(non_core,2), 5, CORE_CLST_CT(non_core),'o')
+end
 
+% Export core and non-core/non-noise points with their labels 
 
+[A,B] = SNNClustering( CT_DATA, K, Eps, MinPts);
 %% Plotting for 4 nodes
 
 figure
