@@ -1,7 +1,11 @@
 function [knn, snn_graph] = compute_knn_snn(Z, k)
     % sparsified similarity matrix
+    display('Starting k-near neighbor computation.');
     knn = snn_dd(Z, k);
+    display('k-near neighbor computed.');
+    
     % snn graph
+    display('Starting SNN graph computation.');
     N = size(Z,1);
     snn_graph = cell(N-1,1);
     
@@ -9,11 +13,12 @@ function [knn, snn_graph] = compute_knn_snn(Z, k)
         knn_i = knn{i};
         snn_i = zeros(N-i,1, 'int8');
         parfor j = (i+1):N
-            snn_i(j-i) = length(intersect(knn_i, knn{j}));
+            %snn_i(j-i) = length(intersect(knn_i, knn{j}));
+            snn_i(j-i) = length(my_intersect(knn_i, knn{j}));
         end
         snn_graph{i} = snn_i;
     end
-   
+   display('SNN graph built.');
 end
 
 function simval = snn_sim(snn_cell, i, j)

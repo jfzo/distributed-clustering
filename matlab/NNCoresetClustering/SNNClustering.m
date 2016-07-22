@@ -13,6 +13,8 @@ function [CORE_PTS_CT, CORE_CLST_CT] = SNNClustering(DATA, K, Eps, MinPts)
 
     [KNN_CT, SNN_CT] = compute_knn_snn(DATA, K);
 
+    display('Sparsification complete. Starting SNN density computation...')
+    
     % Counting close points (in terms of SNN similarity) for each point ~ Density
     DST_CT = zeros(length(SNN_CT) + 1, 1); %array to store density
     for i=1:length(SNN_CT)
@@ -25,6 +27,8 @@ function [CORE_PTS_CT, CORE_CLST_CT] = SNNClustering(DATA, K, Eps, MinPts)
 
     % Identifying CORE points
 
+    display('Density computation complete. Starting CORE point identification...')
+    
     % snn similarity function: e.g. snn_sim(SNN{1},7,1)
     snn_sim = @(SNN_info, i, j) SNN_info{min(i,j)}(abs(i-j));
     CORE_PTS_CT = DST_CT > MinPts;
@@ -35,7 +39,7 @@ function [CORE_PTS_CT, CORE_CLST_CT] = SNNClustering(DATA, K, Eps, MinPts)
         if CORE_CLST_CT(core_points(i)) == 0
             clst_id = clst_id + 1;
             CORE_CLST_CT(core_points(i)) = clst_id;
-%         end
+        end
         for j=i+1:size(core_points, 1)
             if snn_sim(SNN_CT,core_points(i),core_points(j)) >= Eps
                 CORE_CLST_CT(core_points(j)) = CORE_CLST_CT(core_points(i));
@@ -43,6 +47,7 @@ function [CORE_PTS_CT, CORE_CLST_CT] = SNNClustering(DATA, K, Eps, MinPts)
         end
     end
 
+    display('Core points identified. Starting noise removal (final step).')
     % Discarding Noise points (marked with -1 in its entry in CORE_PTS_CT)
     non_core = find(CORE_PTS_CT == 0 );
     core = find(CORE_PTS_CT == 1);
