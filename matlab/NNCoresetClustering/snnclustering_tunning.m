@@ -14,10 +14,11 @@ for i=1:length(range_Eps)
         Eps = range_Eps(i);
         MinPts = range_MinPts(j);
         
-        results_K{i,j} =  cell(2,1);
+        results_K{i,j} =  cell(3,1);
        
         display(sprintf('SNN-clustering with parameters Eps:%d MinPts:%d (K:%d)\n',Eps, MinPts, K));
         [results_K{i,j}{1}, results_K{i,j}{2}] =  SNNClustering_from_snnsim(SNN_K, Eps, MinPts);
-        toc
+        results_K{i,j}{3} = toc;
     end
 end
+save(sprintf('global_results_k%d.mat',K), 'K', 'range_Eps', 'range_MinPts', 'results_K', 'SNN_K')
