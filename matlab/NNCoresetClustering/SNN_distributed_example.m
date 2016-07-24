@@ -1,7 +1,7 @@
 % Z was generated as the CURE dataset and labels are its group tags
 % Pwclass must be available!!
 
-K = 50;
+K = 70;
 Nnodes = 4;
 PCT_SAMPLE = 0.3;
 
@@ -19,7 +19,7 @@ end
 
 %Eps = 34;
 %MinPts = 20;
-range_Eps = 15:5:40;
+range_Eps = 15:5:50;
 range_MinPts = 15:5:30;
 
 results_K = cell(length(range_Eps),length(range_MinPts));
