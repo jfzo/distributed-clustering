@@ -41,6 +41,47 @@ for i=1:length(range_Eps)
 end
 save(sprintf('distributed_results_k%d.mat',K), 'K', 'Nnodes', 'range_Eps', 'range_MinPts', 'results_K', 'SNN')
         
+%%
+load('distributed_results_k90.mat')
+
+for i=1:size(results_K,1)
+    for j=1:size(results_K,2)
+
+        DATA = results_K{i,j}{3};
+        DATA_LBLS = results_K{i,j}{4};
+        
+        CORE_PTS_CT = results_K{i,j}{1};
+        CORE_CLST_CT = results_K{i,j}{2};
+
+        fig = figure;
+        subplot(2,1,1)
+        scatter(DATA(:,1), DATA(:,2), 5, DATA_LBLS,'o')
+        title({['Core-pts with original labels'];['Eps:',num2str(range_Eps(i)),'  MinPts:',num2str(range_MinPts(j))]});
+        legend('off')
+        subplot(2,1,2)
+        scatter(DATA(:,1), DATA(:,2), 5, CORE_CLST_CT,'o')
+        title({['Core-pts with identified labels']});
+        legend('off')
+        
+        saveas(fig, sprintf('results/distribuido/K90/distributed_clustering_result_K%d_eps%d_minpts%d.png',K, range_Eps(i), range_MinPts(j) ));
+        close(fig)
+    end
+end
+
+%%
+clc;
+for K=[50, 70, 90]
+    load(sprintf('distributed_results_k%d.mat',K));
+
+    for i=1:size(results_K,1)
+        for j=1:size(results_K,2)
+            A_LBLS = results_K{i,j}{2}(results_K{i,j}{1} ~= -1); % assigned labels
+            T_LBLS = results_K{i,j}{4}(results_K{i,j}{1} ~= -1); % true labels
+            display(sprintf('Writing results to results/distribuido/K%d/distributed_clustering_result_K%d_eps%d_minpts%d.dat',K, K, range_Eps(i), range_MinPts(j)) );
+            csvwrite(sprintf('results/distribuido/K%d/distributed_clustering_result_K%d_eps%d_minpts%d.dat',K, K,range_Eps(i), range_MinPts(j)), horzcat(A_LBLS, T_LBLS))
+        end
+    end
+end
 % figure
 % subplot(2,1,1)
 % scatter(CT_DATA(:,1), CT_DATA(:,2), 5, CT_DATA_LBLS,'o')
