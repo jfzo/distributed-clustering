@@ -3,8 +3,13 @@ K = 90; % fixed
 DATA = Pwclass(:,1:2);
 [~, SNN_K] = compute_knn_snn(DATA, K);
 
+<<<<<<< HEAD
 range_Eps = 15:5:60;
 range_MinPts = 15:5:45;
+=======
+range_Eps = 15:5:50;
+range_MinPts = 15:5:30;
+>>>>>>> db61ceab6fb4ea1096990d3309fde3bc63079ab0
 
 results_K = cell(length(range_Eps),length(range_MinPts));
 
