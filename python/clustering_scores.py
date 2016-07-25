@@ -11,8 +11,9 @@ def clustering_scores(realt, predt, display=True):
 
     P,E = compute_purity_entropy(realt, predt)
     if display:
-        print "E       ;P       ;ARI     ;AMI   ;NMI     ;H        ;C      ;VM       ;#"
+        #print "ENT       ;PUR       ;ARI     ;AMI   ;NMI     ;HOM        ;COM      ;VME       ;#"
         print round(E,4),";",round(P,4),";",round(ARI,4),";",round(AMI,4),";",round(NMI,4),";",round(H,4),";",round(C,4),";",round(VM,4),";",
+
 
     return {'E':E,'P':P,'ARI':ARI,'AMI':AMI,'NMI':NMI,'H':H,'C':C,'VM':VM}
     
@@ -176,30 +177,29 @@ if __name__ == "__main__":
     import sys
     """
     example of usage:
-    python ~/clustering_scores.py tfdegree_train_w3.sparse.mat.rclass tfdegree_train_w3.sparse.mat.clustering.10
-    """
-    if len(sys.argv) < 3:
-        print "The two label files(TRUE and PREDICTED) were not given"
-        print "Usage",sys.argv[0],"true_file_path predicted_file_path"
-        print "Example:\npython ~/clustering_scores.py tfdegree_train_w3.sparse.mat.rclass tfdegree_train_w3.sparse.mat.clustering.10"
+    python ~/clustering_scores.py csv_file_with_two_columns(pred,True)"""
+    if len(sys.argv) < 2:
+        print "The two label file(PREEDICTED AND TRUE) was not given"
+        print "Usage",sys.argv[0],"pred_true_file_path"
+        print "Example:python ~/clustering_scores.py csv_file_with_two_columns(pred,True)"
         sys.exit(-1)
 
-    ftrue = open(sys.argv[1])
-    fpred = open(sys.argv[2])
+    fpredtrue = open(sys.argv[1])
+
     true_c=[]
     pred_c=[]
     count = 0
-    for lt in ftrue:
-        lp = fpred.readline()
-        if int(lp.strip()) >= 0:
-            count += 1
-            true_c.append( lt.strip() )
-            pred_c.append( lp.strip() )
+    for lt in fpredtrue:
+        PR, TR = lt.strip().split(",")
+        count += 1
+        true_c.append( PR )
+        pred_c.append( TR )
 
-    ftrue.close()
-    fpred.close()
+    fpredtrue.close()
     #print "\n"
     clustering_scores(true_c, pred_c)
     #print "Nr. observations processed:", count
     print count
     #print "\n## Recall that E, P and VM (eq. to NMI) are artificially increased when the nr. of clusters increases.\n"
+
+

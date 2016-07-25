@@ -29,7 +29,7 @@ for i=1:length(range_Eps)
 end
 save(sprintf('global_results_k%d.mat',K), 'K', 'range_Eps', 'range_MinPts', 'results_K', 'SNN_K')
 
-%%
+%% Plotting and storing the figures of the obtained results.
 DATA = Pwclass(:,1:2);
 DATA_LBLS = Pwclass(:,3);
 
@@ -52,5 +52,21 @@ for i=1:size(results_K,1)
         
         saveas(fig, sprintf('figs/K90/global_clustering_result_K%d_eps%d_minpts%d.png',K, range_Eps(i), range_MinPts(j) ));
         close(fig)
+    end
+end
+
+%% To export the results into a format understood by the python script clustering_scores.py
+clc;
+labels = Pwclass(:,3);
+for K=[50, 70, 90]
+    load(sprintf('global_results_k%d.mat',K));
+
+    for i=1:size(results_K,1)
+        for j=1:size(results_K,2)
+            A_LBLS = results_K{i,j}{2}(results_K{i,j}{1} ~= -1); % assigned labels
+            T_LBLS = labels(results_K{i,j}{1} ~= -1); % true labels
+            display(sprintf('Writing results to results/distribuido/K%d/distributed_clustering_result_K%d_eps%d_minpts%d.dat',K, K, range_Eps(i), range_MinPts(j)) );
+            csvwrite(sprintf('results/centralizado/K%d/global_clustering_result_K%d_eps%d_minpts%d.dat',K, K,range_Eps(i), range_MinPts(j)), horzcat(A_LBLS, T_LBLS))
+        end
     end
 end

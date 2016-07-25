@@ -41,7 +41,7 @@ for i=1:length(range_Eps)
 end
 save(sprintf('distributed_results_k%d.mat',K), 'K', 'Nnodes', 'range_Eps', 'range_MinPts', 'results_K', 'SNN')
         
-%%
+%% Plotting and storing the figures of the obtained results.
 load('distributed_results_k90.mat')
 
 for i=1:size(results_K,1)
@@ -68,7 +68,7 @@ for i=1:size(results_K,1)
     end
 end
 
-%%
+%% To export the results into a format understood by the python script clustering_scores.py
 clc;
 for K=[50, 70, 90]
     load(sprintf('distributed_results_k%d.mat',K));
