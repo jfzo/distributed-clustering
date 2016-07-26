@@ -1,5 +1,5 @@
 %%
-K = 50; % fixed
+K = 70; % fixed
 DATA = Pwclass(:,1:2);
 [~, SNN_K] = compute_knn_snn(DATA, K);
 
