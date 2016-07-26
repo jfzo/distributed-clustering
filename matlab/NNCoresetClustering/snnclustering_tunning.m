@@ -1,15 +1,10 @@
 %%
-K = 90; % fixed
+K = 50; % fixed
 DATA = Pwclass(:,1:2);
 [~, SNN_K] = compute_knn_snn(DATA, K);
 
-<<<<<<< HEAD
-range_Eps = 15:5:60;
-range_MinPts = 15:5:45;
-=======
-range_Eps = 15:5:50;
+range_Eps = [3 5 8 10];
 range_MinPts = 15:5:30;
->>>>>>> db61ceab6fb4ea1096990d3309fde3bc63079ab0
 
 results_K = cell(length(range_Eps),length(range_MinPts));
 
@@ -27,7 +22,7 @@ for i=1:length(range_Eps)
         results_K{i,j}{3} = toc;
     end
 end
-save(sprintf('global_results_k%d.mat',K), 'K', 'range_Eps', 'range_MinPts', 'results_K', 'SNN_K')
+save(sprintf('global_results_k%d-1.mat',K), 'K', 'range_Eps', 'range_MinPts', 'results_K', 'SNN_K')
 
 %% Plotting and storing the figures of the obtained results.
 DATA = Pwclass(:,1:2);
