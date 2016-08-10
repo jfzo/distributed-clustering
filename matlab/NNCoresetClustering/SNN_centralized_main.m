@@ -3,7 +3,7 @@ K = 70; % fixed
 DATA = Pwclass(:,1:2);
 [~, SNN_K] = compute_knn_snn(DATA, K);
 
-range_Eps = [3 5 8 10];
+range_Eps = horzcat([3 5 8 10], 15:5:50);
 range_MinPts = 15:5:30;
 
 results_K = cell(length(range_Eps),length(range_MinPts));

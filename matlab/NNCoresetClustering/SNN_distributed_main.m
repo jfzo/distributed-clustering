@@ -19,7 +19,7 @@ end
 
 %Eps = 34;
 %MinPts = 20;
-range_Eps = 15:5:50;
+range_Eps = horzcat([3 5 8 10], 15:5:50);
 range_MinPts = 15:5:30;
 
 results_K = cell(length(range_Eps),length(range_MinPts));
