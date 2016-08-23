@@ -1,7 +1,7 @@
-%%
+%% V1.0 - Experiments made from the raw data vectors
 K = 70; % fixed
 DATA = Pwclass(:,1:2);
-[~, SNN_K] = compute_knn_snn(DATA, K);
+[SNN_K] = compute_knn_snn(DATA, K);
 
 range_Eps = horzcat([3 5 8 10], 15:5:50);
 range_MinPts = 15:5:30;
@@ -24,6 +24,38 @@ for i=1:length(range_Eps)
 end
 save(sprintf('global_results_k%d-1.mat',K), 'K', 'range_Eps', 'range_MinPts', 'results_K', 'SNN_K')
 
+%% V2.0 - Experiments made from the similarity matrix
+textdatasets = cellstr(['SJMN';'FR  ';'DOE ';'ZF  ';'20ng';'WSJ ';'AP  ']);
+K = 70; % fixed
+range_Eps = horzcat([3 5 8 10], 15:5:50);
+range_MinPts = 15:5:30;
+
+for ds=1:length(textdatasets)
+    display(sprintf('Opening similarity matrix located at: ~/eswa-tfidf-data/%s_out.dat_sim.csv', textdatasets{ds}));
+    DATA = dlmread( sprintf('~/eswa-tfidf-data/%s_out.dat_sim.csv', textdatasets{ds}) );
+    display(sprintf('DATA size %d %d',size(DATA,1),size(DATA,2)))
+    % DATA corresponds to a similarity matrix already computed.
+    [SNN_K] = compute_knn_snn_from_similarity(DATA, K);
+
+    
+    results_K = cell(length(range_Eps),length(range_MinPts));
+
+    for i=1:length(range_Eps)
+        for j=1:length(range_MinPts)
+            tic
+            Eps = range_Eps(i);
+            MinPts = range_MinPts(j);
+
+            results_K{i,j} =  cell(3,1);
+
+            display(sprintf('SNN-clustering with parameters Eps:%d MinPts:%d (K:%d)\n',Eps, MinPts, K));
+            [results_K{i,j}{1}, results_K{i,j}{2}] =  SNNClustering_from_snnsim(SNN_K, Eps, MinPts);
+            %CORE_PTS_CT, CORE_CLST_CT
+            results_K{i,j}{3} = toc;
+        end
+    end
+    save(sprintf('tipster_results/centralized_%s_k%d-1.mat',textdatasets{ds},K), 'K', 'range_Eps', 'range_MinPts', 'results_K', 'SNN_K')
+end
 %% Plotting and storing the figures of the obtained results.
 DATA = Pwclass(:,1:2);
 DATA_LBLS = Pwclass(:,3);
