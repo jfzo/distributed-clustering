@@ -15,7 +15,7 @@ args = parser.parse_args()
 
 if not args.inputfile or not args.outfile:
     print "Usage: ./csv2clutosparse -i <path to the input CSV file> -o <path to output file>"
-    sys.exit
+    sys.exit()
 
 outputfile = args.outfile
 inputfile = args.inputfile
