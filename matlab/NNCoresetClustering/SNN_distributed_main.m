@@ -44,10 +44,12 @@ save(sprintf('distributed_results_k%d.mat',K), 'K', 'Nnodes', 'range_Eps', 'rang
 %% V2.0 - Experiments made from the DATA MATRIX
 clear;
 clc;
-textdatasets = cellstr(['SJMN';'FR  ';'DOE ';'ZF  ';'20ng';'WSJ ';'AP  ']);
-K = 50; % fixed
-%range_Eps = horzcat([3 5 8 10], 15:5:50);
-range_Eps = 15:5:50;
+%textdatasets = cellstr(['SJMN';'FR  ';'DOE ';'ZF  ';'20ng';'WSJ ';'AP
+%']); % last two could not be processed.
+textdatasets = cellstr(['SJMN';'FR  ';'DOE ';'ZF  ';'20ng']);
+K = 70; % fixed
+range_Eps = horzcat([3 5 8 10], 15:5:50);
+%range_Eps = 15:5:50;
 range_MinPts = 15:5:30;
 
 Nnodes = 4;
@@ -99,7 +101,7 @@ for ds=1:length(textdatasets)
     end
     
     
-    save(sprintf('tipster_results/distributed_%s_k%d-1.mat',textdatasets{ds},K), 'K', 'Nnodes', 'range_Eps', 'range_MinPts', 'results_K', 'SNN')    
+    save(sprintf('tipster_results/distributed_%s_k%d-1.mat',textdatasets{ds},K), 'K', 'Nnodes', 'range_Eps', 'range_MinPts', 'results_K', 'SNN', '-v7.3')    
 end
 
 %% V2.0 - Experiments made from the similarity matrix
