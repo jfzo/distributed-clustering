@@ -132,7 +132,6 @@ for ds=1:length(textdatasets)
 
     for i=1:length(range_Eps)
         for j=1:length(range_MinPts)
-
             Eps = range_Eps(i);
             MinPts = range_MinPts(j);
 
@@ -178,26 +177,37 @@ for i=1:size(results_K,1)
 end
 
 %% To export the results into a format understood by the python script clustering_scores.py
+clear;
 clc;
-for K=[50, 70, 90]
-    load(sprintf('distributed_results_k%d.mat',K));
+textdatasets = cellstr(['SJMN';'FR  ';'DOE ';'ZF  ';'20ng']);
+for ds=1:length(textdatasets)
+    %for K=[50, 70, 90]
+    for K=[70]
+        %load(sprintf('distributed_results_k%d.mat',K));
+        load(sprintf('tipster_results/distributed_%s_k%d-1.mat',textdatasets{ds},K));
 
-    for i=1:size(results_K,1)
-        for j=1:size(results_K,2)
-            A_LBLS = results_K{i,j}{2}(results_K{i,j}{1} ~= -1); % assigned labels
-            T_LBLS = results_K{i,j}{4}(results_K{i,j}{1} ~= -1); % true labels
-            display(sprintf('Writing results to results/distribuido/K%d/distributed_clustering_result_K%d_eps%d_minpts%d.dat',K, K, range_Eps(i), range_MinPts(j)) );
-            csvwrite(sprintf('results/distribuido/K%d/distributed_clustering_result_K%d_eps%d_minpts%d.dat',K, K,range_Eps(i), range_MinPts(j)), horzcat(A_LBLS, T_LBLS))
+        for i=1:size(results_K,1)
+            for j=1:size(results_K,2)
+
+                if ~ iscell(results_K{i,j})
+                    display(sprintf('Could not process results for dataset %s with K:%d Eps:%d MinPts:%d',textdatasets{ds},K,range_Eps(i), range_MinPts(j)));
+                    continue;
+                end
+
+                A_LBLS = results_K{i,j}{2}(results_K{i,j}{1} ~= -1); % assigned labels
+                T_LBLS = results_K{i,j}{4}(results_K{i,j}{1} ~= -1); % true labels
+                display(sprintf('Writing results to tipster_results/figs/distributed_%s_k%d_eps%d_minpts%d.dat',textdatasets{ds}, K,range_Eps(i), range_MinPts(j)) );
+                csvwrite(sprintf('tipster_results/figs/distributed_%s_k%d_eps%d_minpts%d.dat',textdatasets{ds}, K,range_Eps(i), range_MinPts(j)), horzcat(A_LBLS, T_LBLS))
+            end
         end
     end
+    % figure
+    % subplot(2,1,1)
+    % scatter(CT_DATA(:,1), CT_DATA(:,2), 5, CT_DATA_LBLS,'o')
+    % title({['Centralized core-pts with original labels']});
+    % legend('off')
+    % subplot(2,1,2)
+    % scatter(CT_DATA(:,1), CT_DATA(:,2), 5, CORE_CLST_CT,'o')
+    % title({['Centralized core-pts with identified labels']});
+    % legend('off')
 end
-% figure
-% subplot(2,1,1)
-% scatter(CT_DATA(:,1), CT_DATA(:,2), 5, CT_DATA_LBLS,'o')
-% title({['Centralized core-pts with original labels']});
-% legend('off')
-% subplot(2,1,2)
-% scatter(CT_DATA(:,1), CT_DATA(:,2), 5, CORE_CLST_CT,'o')
-% title({['Centralized core-pts with identified labels']});
-% legend('off')
-

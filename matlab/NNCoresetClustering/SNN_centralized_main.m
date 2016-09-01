@@ -83,17 +83,24 @@ for i=1:size(results_K,1)
 end
 
 %% To export the results into a format understood by the python script clustering_scores.py
+clear;
 clc;
-labels = Pwclass(:,3);
-for K=[50, 70, 90]
-    load(sprintf('global_results_k%d.mat',K));
+textdatasets = cellstr(['SJMN';'FR  ';'DOE ';'ZF  ';'20ng';'WSJ ';'AP  ']);
 
-    for i=1:size(results_K,1)
-        for j=1:size(results_K,2)
-            A_LBLS = results_K{i,j}{2}(results_K{i,j}{1} ~= -1); % assigned labels
-            T_LBLS = labels(results_K{i,j}{1} ~= -1); % true labels
-            display(sprintf('Writing results to results/distribuido/K%d/distributed_clustering_result_K%d_eps%d_minpts%d.dat',K, K, range_Eps(i), range_MinPts(j)) );
-            csvwrite(sprintf('results/centralizado/K%d/global_clustering_result_K%d_eps%d_minpts%d.dat',K, K,range_Eps(i), range_MinPts(j)), horzcat(A_LBLS, T_LBLS))
+for ds=1:length(textdatasets)
+    %for K=[50, 70, 90]
+    labels = dlmread( sprintf('~/eswa-tfidf-data/%s_out.dat.labels', textdatasets{ds}) );
+    for K=[50, 70]
+        %load(sprintf('global_results_k%d.mat',K));
+        load(sprintf('tipster_results/centralized_%s_k%d-1.mat',textdatasets{ds},K));
+
+        for i=1:size(results_K,1)
+            for j=1:size(results_K,2)
+                A_LBLS = results_K{i,j}{2}(results_K{i,j}{1} ~= -1); % assigned labels
+                T_LBLS = labels(results_K{i,j}{1} ~= -1); % true labels
+                display(sprintf('Writing results to tipster_results/figs/centralized_%s_k%d_eps%d_minpts%d.dat',textdatasets{ds}, K,range_Eps(i), range_MinPts(j)) );
+                csvwrite(sprintf('tipster_results/figs/centralized_%s_k%d_eps%d_minpts%d.dat',textdatasets{ds}, K,range_Eps(i), range_MinPts(j)), horzcat(A_LBLS, T_LBLS));
+            end
         end
     end
 end
