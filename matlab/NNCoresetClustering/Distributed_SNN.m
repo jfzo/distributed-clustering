@@ -38,6 +38,9 @@ CORE_PTS = cell(Nnodes, 1);
 CORE_CLST = cell(Nnodes, 1);
 parfor s=1:Nnodes
     CORE_PTS{s} = DST{s} > MinPts;
+    
+    assert(sum(CORE_PTS{s}) > 0 );
+    
     CORE_CLST{s} = zeros(length(DST{s}),1);
     core_points = find(DST{s} > MinPts);
     
@@ -61,20 +64,29 @@ SAMPLED_CORE_PTS = cell(Nnodes, 1);
 parfor s=1:Nnodes
     %find(CORE_PTS{s} == 1)
     PTS_s_W = zeros(length(CORE_PTS{s}), 1);
-    N_s = length(find(CORE_CLST{s} ~= 0));
+    N_s = length(find(CORE_CLST{s} ~= 0)); % nr. of points having a cluster id assigned
     
     clst_s = unique(CORE_CLST{s});
+    display('clusters  ')
+    display(clst_s)
     for c=1:length(clst_s)
         if clst_s(c) == 0
             continue
         end
         %display(sprintf('[%d] Valor de c=%d \n', s, clst_s(c)));
-        N_c = length(find(CORE_CLST{s} == clst_s(c)));
-        %display(sprintf('Valor de N_c=%d \n', N_c));
+        N_c = length(find(CORE_CLST{s} == clst_s(c)));%nr. of points in the current cluster
+        
+        display(sprintf('Valor de N_c=%d \n', N_c));
+        display(sprintf('Valor de N_s=%d \n', N_s));
+        
         w_c = ((1 - ( N_c/N_s ) )/2) / N_c;
+        display(sprintf('Valor de w_c=%f \n', w_c));
+        
         PTS_s_W(CORE_CLST{s} == clst_s(c)) = w_c;
     end
-    %display( sum(PTS_s_W) );
+    display( sum(PTS_s_W) );
+    display(~(sum(PTS_s_W) > 0) )
+    display(~all(PTS_s_W>=0))
     SAMPLED_CORE_PTS{s} = randsample(length(CORE_CLST{s}), round(PCT_SAMPLE*N_s) ,true, PTS_s_W);
 end
 
@@ -87,11 +99,12 @@ for s=1:Nnodes
     N_sampled = N_sampled + length(SAMPLED_CORE_PTS{s});
 end
 
-CT_DATA = zeros(N_sampled, 2);
+CT_DATA = zeros(N_sampled, size(DATA,2));
 CT_DATA_LBLS = zeros(N_sampled, 1);
 
 localdata = DATA(indn==1,:);
 localdata_lbls = DATA_LBLS(indn==1,:);
+
 
 CT_DATA(1:length(SAMPLED_CORE_PTS{1}),:) = localdata(SAMPLED_CORE_PTS{1},:);
 CT_DATA_LBLS(1:length(SAMPLED_CORE_PTS{1}),:) = localdata_lbls(SAMPLED_CORE_PTS{1},:);
@@ -108,7 +121,7 @@ end
 %% Apply SNN-clustering over CT_DATA
 
 %K = 50;
-[KNN_CT, SNN_CT] = compute_knn_snn(CT_DATA, K);
+[SNN_CT, KNN_CT] = compute_knn_snn(CT_DATA, K);
 
 % Counting close points (in terms of SNN similarity) for each point ~ Density
 Eps = 15;

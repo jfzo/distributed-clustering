@@ -1,4 +1,4 @@
-function [snn_graph] = compute_knn_snn(Z, k)
+function [snn_graph, knn] = compute_knn_snn(Z, k)
     % sparsified similarity matrix
     display('Starting k-near neighbor computation.');
     knn = snn_dd(Z, k);
@@ -50,7 +50,8 @@ function [knn] = snn_dd(P, k)
     % I(:, i ) denotes the k+1 elements with the smallest 
     % distances (including i )
     N = size(P,1);
-    [~, I] = pdist2(P, P, 'euclidean', 'Smallest', k+1);
+    %[~, I] = pdist2(P, P, 'euclidean', 'Smallest', k+1);
+    [~, I] = pdist2(P, P, 'cosine', 'Smallest', k+1);
     knn = cell(N, 1);
     parfor i = 1:N
         nn_i = I(:, i);

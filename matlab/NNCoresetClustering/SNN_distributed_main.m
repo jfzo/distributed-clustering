@@ -14,7 +14,7 @@ indn = get_partition('uniform', N, Nnodes, sum(G), 1, Pwclass(:,1:end-1));
 SNN = cell(Nnodes, 1);
 parfor s=1:Nnodes
     localdata = Pwclass(indn==s,1:end-1);
-    [SNN{s}] = compute_knn_snn(localdata, K);
+    [SNN{s},~] = compute_knn_snn(localdata, K);
 end
 
 %Eps = 34;
@@ -40,7 +40,69 @@ for i=1:length(range_Eps)
     end
 end
 save(sprintf('distributed_results_k%d.mat',K), 'K', 'Nnodes', 'range_Eps', 'range_MinPts', 'results_K', 'SNN')
-        
+
+%% V2.0 - Experiments made from the DATA MATRIX
+clear;
+clc;
+%textdatasets = cellstr(['SJMN';'FR  ';'DOE ';'ZF  ';'20ng';'WSJ ';'AP
+%']); % last two could not be processed.
+textdatasets = cellstr(['SJMN';'FR  ';'DOE ';'ZF  ';'20ng']);
+K = 70; % fixed
+range_Eps = horzcat([3 5 8 10], 15:5:50);
+%range_Eps = 15:5:50;
+range_MinPts = 15:5:30;
+
+Nnodes = 4;
+PCT_SAMPLE = 0.3;
+
+for ds=1:length(textdatasets)
+    display(sprintf('Opening similarity matrix located at: ~/eswa-tfidf-data/%s_out.dat.dense', textdatasets{ds}));
+    DATA = dlmread( sprintf('~/eswa-tfidf-data/%s_out.dat.dense', textdatasets{ds}) );
+    LABELS = dlmread( sprintf('~/eswa-tfidf-data/%s_out.dat.labels', textdatasets{ds}) );
+  
+    Pwclass = horzcat(DATA, LABELS);
+  
+    G= random_graph_gen(Nnodes, 0.3);
+    [N, ~] = size(DATA);
+  
+    indn = get_partition('uniform', N, Nnodes, sum(G), 1, Pwclass(:,1:end-1));
+
+    %KNN = cell(Nnodes, 1);
+    SNN = cell(Nnodes, 1);
+    parfor s=1:Nnodes
+        localdata = Pwclass(indn==s,1:end-1);
+        [SNN{s},~] = compute_knn_snn(localdata, K);
+    end
+
+
+    %Eps = 34;
+    %MinPts = 20;
+    results_K = cell(length(range_Eps),length(range_MinPts));
+
+    for i=1:length(range_Eps)
+        for j=1:length(range_MinPts)
+
+            Eps = range_Eps(i);
+            MinPts = range_MinPts(j);
+
+            try
+                results_K{i,j} =  cell(5,1);
+
+                display(sprintf('Distributed SNN-clustering with parameters Eps:%d MinPts:%d (K:%d)\n',Eps, MinPts, K));
+                tic;
+                [ results_K{i,j}{1}, results_K{i,j}{2}, results_K{i,j}{3}, results_K{i,j}{4} ] = Distributed_SNN(Pwclass, indn, Nnodes, SNN, K, Eps, MinPts, PCT_SAMPLE );
+                %CORE_PTS_CT, CORE_CLST_CT, CT_DATA, CT_DATA_LBLS
+                results_K{i,j}{5} = toc;
+            catch
+                results_K{i,j} = NaN;
+                display(sprintf('Could not end distributed SNN-clustering with parameters Eps:%d MinPts:%d (K:%d)\n',Eps, MinPts, K));
+            end
+        end
+    end
+    
+    
+    save(sprintf('tipster_results/distributed_%s_k%d-1.mat',textdatasets{ds},K), 'K', 'Nnodes', 'range_Eps', 'range_MinPts', 'results_K', 'SNN', '-v7.3')    
+end
 
 %% V2.0 - Experiments made from the similarity matrix
 textdatasets = cellstr(['SJMN';'FR  ';'DOE ';'ZF  ';'20ng';'WSJ ';'AP  ']);
