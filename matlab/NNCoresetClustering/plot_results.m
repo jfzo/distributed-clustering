@@ -39,18 +39,20 @@ for ds=1:length(textdatasets)
         A = zeros(length(eps_values),length(minpts_values) );
         h = 1;
         for i=1:length(eps_values)
-            A(h,:) = loaded_results((loaded_results(:,2)==eps_values(i)), 6);
-            h = h + 1;
+            %A(h,:) = loaded_results((loaded_results(:,2)==eps_values(i)), 6);
+            %loaded_results(bsxfun(@and, loaded_results(:,2)== 25, loaded_results(:,3)== 15), :)
+            %h = h + 1;
+            for j=1:length(minpts_values)
+                valor = loaded_results(bsxfun(@and, loaded_results(:,2)== eps_values(i), loaded_results(:,3)== minpts_values(j)), 6);
+                if size(valor, 1) == 0
+                   A(i,j)  = 0;
+                else
+                   A(i,j)  = valor(1,1);
+                end
+            end            
         end
 
-        h = tabularHeatMap(A);
-        xlabel('MinPts');
-        ylabel('Eps');
-        %h.YTick = transpose(eps_values);
-        h.YTickLabel =  num2cell(transpose(eps_values));
-        h.XTick =  1:length(minpts_values);
-        h.XTickLabel = num2cell(transpose(minpts_values));
-        saveas(h, sprintf('tipster_results/figs/distributed_%s_k%d_results_ARI_AMI_VM.png',textdatasets{ds},K));
+        
     end
 end
 %%
