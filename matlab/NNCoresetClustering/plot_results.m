@@ -51,8 +51,16 @@ for ds=1:length(textdatasets)
                 end
             end            
         end
+        h = tabularHeatMap(A);
+        xlabel('MinPts');
+        ylabel('Eps');
+        h.YTick =  1:length(eps_values);
+        h.YTickLabel =  num2cell(transpose(eps_values));
+        h.XTick =  1:length(minpts_values);
+        h.XTickLabel = num2cell(transpose(minpts_values));
 
-        
+        %saveas(h, sprintf('tipster_results/figs/distributed_%s_k%d_results_ARI_AMI_VM.png',textdatasets{ds},K));
+        saveas(h, sprintf('tipster_results/figs/distributed_%s_k%d_results_VM.png',textdatasets{ds},K));
     end
 end
 %%
