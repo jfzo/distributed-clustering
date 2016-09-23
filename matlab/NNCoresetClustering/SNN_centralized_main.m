@@ -25,8 +25,12 @@ end
 save(sprintf('global_results_k%d-1.mat',K), 'K', 'range_Eps', 'range_MinPts', 'results_K', 'SNN_K')
 
 %% V2.0 - Experiments made from the similarity matrix
-textdatasets = cellstr(['SJMN';'FR  ';'DOE ';'ZF  ';'20ng';'WSJ ';'AP  ']);
-K = 70; % fixed
+clear;
+clc
+%textdatasets = cellstr(['SJMN';'FR  ';'DOE ';'ZF  ';'20ng';'WSJ ';'AP  ']);
+textdatasets = cellstr(['SJMN';'FR  ';'DOE ';'ZF  ';'20ng']);
+
+%K = 70; % fixed
 range_Eps = horzcat([3 5 8 10], 15:5:50);
 range_MinPts = 15:5:30;
 
@@ -35,26 +39,29 @@ for ds=1:length(textdatasets)
     DATA = dlmread( sprintf('~/eswa-tfidf-data/%s_out.dat_sim.csv', textdatasets{ds}) );
     display(sprintf('DATA size %d %d',size(DATA,1),size(DATA,2)))
     % DATA corresponds to a similarity matrix already computed.
-    [SNN_K] = compute_knn_snn_from_similarity(DATA, K);
-
     
-    results_K = cell(length(range_Eps),length(range_MinPts));
+    for K=[90, 110]
+        [SNN_K] = compute_knn_snn_from_similarity(DATA, K);
 
-    for i=1:length(range_Eps)
-        for j=1:length(range_MinPts)
-            tic
-            Eps = range_Eps(i);
-            MinPts = range_MinPts(j);
 
-            results_K{i,j} =  cell(3,1);
+        results_K = cell(length(range_Eps),length(range_MinPts));
 
-            display(sprintf('SNN-clustering with parameters Eps:%d MinPts:%d (K:%d)\n',Eps, MinPts, K));
-            [results_K{i,j}{1}, results_K{i,j}{2}] =  SNNClustering_from_snnsim(SNN_K, Eps, MinPts);
-            %CORE_PTS_CT, CORE_CLST_CT
-            results_K{i,j}{3} = toc;
+        for i=1:length(range_Eps)
+            for j=1:length(range_MinPts)
+                tic
+                Eps = range_Eps(i);
+                MinPts = range_MinPts(j);
+
+                results_K{i,j} =  cell(3,1);
+
+                display(sprintf('SNN-clustering with parameters Eps:%d MinPts:%d (K:%d)\n',Eps, MinPts, K));
+                [results_K{i,j}{1}, results_K{i,j}{2}] =  SNNClustering_from_snnsim(SNN_K, Eps, MinPts);
+                %CORE_PTS_CT, CORE_CLST_CT
+                results_K{i,j}{3} = toc;
+            end
         end
+        save(sprintf('tipster_results/centralized_%s_k%d-1.mat',textdatasets{ds},K), 'K', 'range_Eps', 'range_MinPts', 'results_K', 'SNN_K')
     end
-    save(sprintf('tipster_results/centralized_%s_k%d-1.mat',textdatasets{ds},K), 'K', 'range_Eps', 'range_MinPts', 'results_K', 'SNN_K')
 end
 %% Plotting and storing the figures of the obtained results.
 DATA = Pwclass(:,1:2);
@@ -85,12 +92,14 @@ end
 %% To export the results into a format understood by the python script clustering_scores.py
 clear;
 clc;
-textdatasets = cellstr(['SJMN';'FR  ';'DOE ';'ZF  ';'20ng';'WSJ ';'AP  ']);
+%textdatasets = cellstr(['SJMN';'FR  ';'DOE ';'ZF  ';'20ng';'WSJ ';'AP  ']);
+textdatasets = cellstr(['SJMN';'FR  ';'DOE ';'ZF  ';'20ng']);
+
 
 for ds=1:length(textdatasets)
     %for K=[50, 70, 90]
     labels = dlmread( sprintf('~/eswa-tfidf-data/%s_out.dat.labels', textdatasets{ds}) );
-    for K=[50, 70]
+    for K=[90, 110]
         %load(sprintf('global_results_k%d.mat',K));
         load(sprintf('tipster_results/centralized_%s_k%d-1.mat',textdatasets{ds},K));
 

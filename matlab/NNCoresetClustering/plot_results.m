@@ -4,10 +4,11 @@
 % VMeasure 6
 clear;
 clc;
-%textdatasets = cellstr(['SJMN';'FR  ';'DOE ';'ZF  ';'20ng']);
-textdatasets = cellstr(['SJMN';'FR  ';'DOE ';'ZF  ';'20ng';'WSJ ';'AP  ']);
+%textdatasets = cellstr(['SJMN';'FR  ';'DOE ';'ZF  ';'20ng';'WSJ ';'AP  ']);
+textdatasets = cellstr(['SJMN';'FR  ';'DOE ';'ZF  ';'20ng']);
+
 for ds=1:length(textdatasets)
-    for K=[50, 70]
+    for K=[90, 110]
         loaded_results = csvread(sprintf('tipster_results/figs/centralized_%s_k%d_results_ARI_AMI_VM',textdatasets{ds},K));
         %loaded_results = csvread(sprintf('tipster_results/figs/centralized_results_k%d.csv',K));
         eps_values = unique(loaded_results(:,2));
@@ -48,9 +49,13 @@ end
 %% Distributed
 clear;
 clc;
-textdatasets = cellstr(['SJMN';'FR  ';'DOE ';'ZF  ';'20ng']);
+%textdatasets = cellstr(['SJMN';'FR  ';'DOE ';'ZF  ';'20ng']);
+%textdatasets = cellstr(['SJMN';'FR  ']);
+textdatasets = cellstr(['DOE ';'ZF  ';'20ng']);
+
+
 for ds=1:length(textdatasets)
-    for K=[70]
+    for K=[50]
         loaded_results = csvread(sprintf('tipster_results/figs/distributed_%s_k%d_results_ARI_AMI_VM',textdatasets{ds},K));
 
         eps_values = unique(loaded_results(:,2));
