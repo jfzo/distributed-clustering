@@ -47,6 +47,61 @@ Pwclass=importdata('noisy_circles.csv'); % Use parameter $\sigma=0.1$
 %gscatter(Pwclass(:,1),Pwclass(:,2),Pwclass(:,3))
 % adding noise
 P = Pwclass(:,1:2);
+%% EXPERIMENTS WITH REAL TEXT DATA
+clear;
+clc;
+ %textdatasets = cellstr(['SJMN';'FR  ';'DOE ';'ZF  ';'20ng']);
+textdatasets = cellstr(['SJMN']);
+
+for ds=1:length(textdatasets)
+    display(sprintf('Opening similarity matrix located at: ~/eswa-tfidf-data/%s_out.dat.dense', textdatasets{ds}));
+    DATA = dlmread( sprintf('~/eswa-tfidf-data/%s_out.dat.dense', textdatasets{ds}) );
+    LABELS = dlmread( sprintf('~/eswa-tfidf-data/%s_out.dat.labels', textdatasets{ds}) );
+  
+    Pwclass = horzcat(DATA, LABELS);
+    
+    % Coreset routine    
+    K = length(unique(Pwclass(:,3))); % it can be manually set also!    
+
+    %'Random'graph generation with n=9, p=0.3
+    Nnodes = 4;
+    G= random_graph_gen(Nnodes, 0.3);    
+    fprintf('generated random graph\n');
+
+    %partitioning data into 9 local sets using 'weighted' partition method
+    [N, dim] = size(DATA);
+    indn=get_partition('weighted', N, Nnodes, sum(G), 1, DATA);
+
+    %Distributed PCA of the data with t_vector = [14]
+    proj_vector = distributed_pca(DATA, [200], Nnodes, indn);
+    lowDim_P = DATA*proj_vector{1};
+    %lowDim_P = P;
+
+    global LOC_CORESET_CENTERS
+    LOC_CORESET_CENTERS = zeros(Nnodes*K, 2);
+    %Distributed_coreset construction and lloyd's k-means impementation
+    %for the PCA data with k=10, t=10% of the size of the data
+    [S,w] = distributed_coreset(lowDim_P, indn, Nnodes, K, floor(0.2*N) );
+    
+    [centers_coreset]=lloyd_kmeans(K, S, w);
+
+    dims = size(S);
+    labeledS = zeros(dims(1), dims(2) + 1);
+    labeledS(:,1:2) = S;
+
+    for i=1:dims(1)
+        min_d = inf;
+        min_c = -1;
+        for c=1:size(centers_coreset,1)
+            curr_d = sum((S(i,:)-centers_coreset(c,:)).^2);
+            if curr_d < min_d
+                min_d = curr_d;
+                min_c = c;
+            end
+        end
+        labeledS(i,3) = min_c;
+    end
+end
 %% Coreset routine    
 K = length(unique(Pwclass(:,3))); % it can be manually set also!    
 
