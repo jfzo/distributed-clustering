@@ -124,7 +124,7 @@ end
 [SNN_CT, KNN_CT] = compute_knn_snn(CT_DATA, K);
 
 % Counting close points (in terms of SNN similarity) for each point ~ Density
-Eps = 15;
+%Eps = 15;
 DST_CT = zeros(length(SNN_CT) + 1, 1); %array to store density
 for i=1:length(SNN_CT)
     dense_ng = find(SNN_CT{i} > Eps);
