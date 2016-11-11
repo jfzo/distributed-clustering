@@ -1,8 +1,12 @@
-function [snn_graph, knn] = compute_knn_snn(Z, k)
+function [snn_graph, knn] = compute_knn_snn(Z, k, distance_measure)
     % sparsified similarity matrix
+    dmeasure = 'cosine';
+    if nargin == 3
+        dmeasure = distance_measure;
+    end
+    
     display('Starting k-near neighbor computation.');
-    knn = snn_dd(Z, k);
-    display('k-near neighbor computed.');
+    knn = snn_dd(Z, k, dmeasure);
     
     % snn graph
     display('Starting SNN graph computation.');
@@ -44,18 +48,36 @@ function [knn] = snn_dd_par(P, k)
     end
 end
 
-function [knn] = snn_dd(P, k)
+function [knn] = snn_dd(P, k, distance_measure)
     % returns a k+1 x N matrix with the indices 
     % of the smallest distances in each column
     % I(:, i ) denotes the k+1 elements with the smallest 
     % distances (including i )
+    if nargin == 2
+        distance_measure = 'cosine';
+    end
+ 
+       
+    display('Computing pairwise distances.');
     N = size(P,1);
-    %[~, I] = pdist2(P, P, 'euclidean', 'Smallest', k+1);
-    [~, I] = pdist2(P, P, 'cosine', 'Smallest', k+1);
+     
+    if strcmp(distance_measure, 'cosine') == 1
+        display('Using cosine distance measure.')
+        [~, I] = pdist2(P, P, 'cosine', 'Smallest', k+1);
+    elseif(strcmp(distance_measure, 'euclidean') == 1)
+        display('Using euclidean distance measure.')
+        [~, I] = pdist2(P, P, 'euclidean', 'Smallest', k+1);
+    else
+        display('Using cosine distance measure.')
+        [~, I] = pdist2(P, P, 'cosine', 'Smallest', k+1);
+    end
+    
     knn = cell(N, 1);
     parfor i = 1:N
         nn_i = I(:, i);
         knn{i} = nn_i(2:end);%filters point i
     end
+    display('k-near neighbor computed.');
+
 end
 

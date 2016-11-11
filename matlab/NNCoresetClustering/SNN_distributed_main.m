@@ -113,7 +113,7 @@ clc;
 range_Eps = horzcat([3 5 8 10], 15:5:50);
 range_MinPts = 5:5:30;
 
-Nnodes = 4;
+Nnodes = 8;
 PCT_SAMPLE = 0.3;
 %
 DATA = dlmread('cure_data.csv');
@@ -126,12 +126,19 @@ G= random_graph_gen(Nnodes, 0.3);
 [N, ~] = size(DATA);
 
 indn = get_partition('uniform', N, Nnodes, sum(G), 1, Pwclass(:,1:end-1));
-for K=[50, 70, 90, 110]
-    %KNN = cell(Nnodes, 1);
+
+
+localdata = cell(Nnodes, 1);
+for s=1:Nnodes
+    localdata{s} = Pwclass(indn==s,1:end-1);
+end
+
+for K=[90, 110]
     SNN = cell(Nnodes, 1);
+    
     parfor s=1:Nnodes
-        localdata = Pwclass(indn==s,1:end-1);
-        [SNN{s},~] = compute_knn_snn(localdata, K);
+        %localdata = Pwclass(indn==s,1:end-1);
+        [SNN{s},~] = compute_knn_snn(localdata{s}, K, 'euclidean');
     end
     
     results_K = cell(length(range_Eps),length(range_MinPts));
