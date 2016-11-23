@@ -22,18 +22,14 @@ def compute_snn(KNN):
     return S
 
 
-def snn_clustering(S, K, Eps, MinPts):
+def snn_clustering(snn_sim, Eps, MinPts):
     """
-    SNNClustering(S, K, Eps, MinPts)
-    :param S: Symmetric similarity matrix
-    :param K: Number of nearest neighbors to use
+    SNNClustering(snn_sim, Eps, MinPts)
+    :param snn_sim: Symmetric Shared-Nearest-Neighbor similarity matrix
     :param Eps:
     :param MinPts:
-    :return: The core point list and the clustetr assignment for each point in the Data.
+    :return: The core point, non-core point and noise point lists along with the cluster assignment for each data instance
     """
-
-    knn_info = compute_knn(S, K)
-    snn_sim = compute_snn(knn_info)
 
     N = snn_sim.shape[0]
     # Computing Density ~ #Close-points (in terms of SNN similarity) for each point
@@ -45,7 +41,6 @@ def snn_clustering(S, K, Eps, MinPts):
     # Identifying core points (those having snn-density higher than MinPts )
     core_points = np.where(snn_density >= MinPts)[0]
 
-    print "#core_points:",len(core_points)," min-density:",np.min(snn_density)," max-density:",np.max(snn_density)
     assert(len(core_points) > 0 )
 
     cluster_assign = np.zeros((N,))
@@ -74,7 +69,13 @@ def snn_clustering(S, K, Eps, MinPts):
         else:
             cluster_assign[noncore_pt] = cluster_assign[max_snn_pt]
 
-    return core_points, cluster_assign
+    noise_points = np.where(cluster_assign[non_core_points] == -1)[0]
+    non_core_points = np.where( cluster_assign[non_core_points] != -1 )[0]
+
+
+    #print "#core_points:", len(core_points), "#non_core_points:",len(non_core_points),"#noisy_points:",len(noise_points), "min-density:", np.min(snn_density), " max-density:", np.max(snn_density)
+
+    return core_points, non_core_points, noise_points, cluster_assign
 
 
 # Example
@@ -94,24 +95,46 @@ plt.show()
 """
 
 
-"""
-from sklearn import cluster, datasets
-from sklearn.preprocessing import StandardScaler
-import pylab
 
-noisy_circles = datasets.make_circles(n_samples=100, factor=.5,
-                                      noise=.05)
-DATA, y = noisy_circles
-DATA = StandardScaler().fit_transform(DATA)
+if __name__ == '__main__':
+    import numpy as np
+    from sklearn import cluster, datasets
+    from sklearn.preprocessing import StandardScaler
+    from sklearn.metrics.pairwise import euclidean_distances
+    import pylab
+    import sys
+    from clustering_scores import clustering_scores
 
-D = euclidean_distances(DATA, DATA)
-S = np.max(D) - D
+    #sys.path.append('/Volumes/SSDII/Users/juan/git/distributed-clustering/python/')
 
-CP, CL = snn_clustering(S, 5, 1, 9)
+    noisy_circles = datasets.make_circles(n_samples=1000, factor=.1, noise=.05)
+    DATA, y = noisy_circles
+    DATA = StandardScaler().fit_transform(DATA)
 
-# data with the core-points marked
-pylab.scatter(DATA[:,0], DATA[:,1],marker='x');pylab.scatter(DATA[CP,0], DATA[CP,1]);pylab.show()
+    D = euclidean_distances(DATA, DATA)
+    S = 1 - (D - np.min(D))/(np.max(D)-np.min(D))
 
-# data with labels found
-pylab.scatter(DATA[np.where(CL != -1),0], DATA[np.where(CL != -1),1],c =CL[np.where(CL != -1)]);pylab.show()
-"""
+    K = 50
+    knn_info = compute_knn(S, K) # sparsify the similarity matrix
+    snn_sim = compute_snn(knn_info) # obtains the snn similarity matrix
+
+    CP, NCP, NP, CL = snn_clustering(snn_sim, 30, 33) #corepoints, non-corepoints, noise-points and cluster assignment
+    print "#core_points:", len(CP), "#non_core_points:", len(NCP), "#noisy_points:", len(NP), "#Clusters:", len(np.unique(CL[CP]) )
+    results = clustering_scores(y, CL) # dict containing {'E','P','ARI','AMI','NMI','H','C','VM'}
+
+
+
+    # data with the core-points marked
+    pylab.subplot(211)
+    pylab.scatter(DATA[NCP,0], DATA[NCP,1],marker='^', color='b', label='non-core-point')
+    pylab.scatter(DATA[NP,0], DATA[NP,1], marker='+', color='r', label='noise')
+    pylab.scatter(DATA[CP,0], DATA[CP,1], marker='o', color='g', label='core-point')
+    pylab.legend(loc='upper right')
+    # data with labels found
+    pylab.subplot(212)
+    pylab.scatter(DATA[NCP,0], DATA[NCP,1], c =CL[NCP], marker='o')
+    pylab.scatter(DATA[CP, 0], DATA[CP, 1], c=CL[CP], marker='o')
+    pylab.scatter(DATA[NP, 0], DATA[NP, 1], marker='^', color='r')
+
+    pylab.show()
+
