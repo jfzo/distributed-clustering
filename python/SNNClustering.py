@@ -114,15 +114,33 @@ if __name__ == '__main__':
     D = euclidean_distances(DATA, DATA)
     S = 1 - (D - np.min(D))/(np.max(D)-np.min(D))
 
-    K = 50
-    knn_info = compute_knn(S, K) # sparsify the similarity matrix
-    snn_sim = compute_snn(knn_info) # obtains the snn similarity matrix
+    for K in [20, 30, 40, 50, 60]:
+        K = 50
+        knn_info = compute_knn(S, K) # sparsify the similarity matrix
+        snn_sim = compute_snn(knn_info) # obtains the snn similarity matrix
 
-    CP, NCP, NP, CL = snn_clustering(snn_sim, 30, 33) #corepoints, non-corepoints, noise-points and cluster assignment
-    print "#core_points:", len(CP), "#non_core_points:", len(NCP), "#noisy_points:", len(NP), "#Clusters:", len(np.unique(CL[CP]) )
-    results = clustering_scores(y, CL) # dict containing {'E','P','ARI','AMI','NMI','H','C','VM'}
+        max_vm, max_vm_params = 0, [0,0,K]
+        for Eps in [15,20,25,30,35, 40]:
+            for MinPts in [15, 20, 25, 30, 35, 40, 45]:
+                try:
+                    CP, NCP, NP, CL = snn_clustering(snn_sim, Eps, MinPts) #corepoints, non-corepoints, noise-points and cluster assignment
+                    print "#core_points:", len(CP), "#non_core_points:", len(NCP), "#noisy_points:", len(NP), "#Clusters:", len(np.unique(CL[CP]) )
+                    results = clustering_scores(y, CL, display=False) # dict containing {'E','P','ARI','AMI','NMI','H','C','VM'}
+
+                    if results['VM'] > max_vm:
+                        max_vm = results['VM']
+                        max_vm_params = Eps, MinPts
+
+                    print Eps, MinPts, results["VM"],"(",max_vm,")"
+                except AssertionError:
+                    print("Uups!  No se encontraron Core-Points.  Intentando de nuevo...")
 
 
+    # BEST CONFIGURATION
+    print "Best VM(",max_vm,") is achieved with","Eps:",max_vm_params[0],"MinPts:",max_vm_params[1],"K:",max_vm_params[2]
+    knn_info = compute_knn(S, max_vm_params[2])  # sparsify the similarity matrix
+    snn_sim = compute_snn(knn_info)  # obtains the snn similarity matrix
+    CP, NCP, NP, CL = snn_clustering(snn_sim, max_vm_params[0], max_vm_params[1])
 
     # data with the core-points marked
     pylab.subplot(211)
@@ -134,7 +152,7 @@ if __name__ == '__main__':
     pylab.subplot(212)
     pylab.scatter(DATA[NCP,0], DATA[NCP,1], c =CL[NCP], marker='o')
     pylab.scatter(DATA[CP, 0], DATA[CP, 1], c=CL[CP], marker='o')
-    pylab.scatter(DATA[NP, 0], DATA[NP, 1], marker='^', color='r')
+    pylab.scatter(DATA[NP, 0], DATA[NP, 1], marker='x', color='r')
 
     pylab.show()
 
