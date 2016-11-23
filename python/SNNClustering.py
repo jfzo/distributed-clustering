@@ -129,9 +129,9 @@ if __name__ == '__main__':
 
                     if results['VM'] > max_vm:
                         max_vm = results['VM']
-                        max_vm_params = Eps, MinPts
+                        max_vm_params = Eps, MinPts, K
 
-                    print Eps, MinPts, results["VM"],"(",max_vm,")"
+                    print "Eps",Eps,"MinPts", MinPts,"K:",K, results["VM"],"(",max_vm,")"
                 except AssertionError:
                     print("Uups!  No se encontraron Core-Points.  Intentando de nuevo...")
 
