@@ -1,7 +1,7 @@
-This is pdfTeX, Version 3.14159265-2.6-1.40.16 (MiKTeX 2.9) (preloaded format=pdflatex 2016.4.6)  26 DEC 2016 15:52
+This is pdfTeX, Version 3.14159265-2.6-1.40.16 (MiKTeX 2.9) (preloaded format=pdflatex 2016.4.6)  26 DEC 2016 17:32
 entering extended mode
-**C:/Users/vector/Dropbox/2016_distributed-snn/distributed_snn.tex
-(C:/Users/vector/Dropbox/2016_distributed-snn/distributed_snn.tex
+**./distributed_snn.tex
+(distributed_snn.tex
 LaTeX2e <2015/10/01> patch level 2
 Babel <3.9n> and hyphenation patterns for 69 languages loaded.
 ("C:\Program Files (x86)\MiKTeX 2.9\tex\latex\base\article.cls"
@@ -742,12 +742,18 @@ LaTeX Font Info:    Font shape `OT1/ptm/bx/n' in size <12> not available
 File: uni-32.def 2013/05/13 UCS: Unicode data U+2000..U+20FF
 ) [2]
 [3]
-Overfull \hbox (24.2175pt too wide) in paragraph at lines 104--105
+Overfull \hbox (56.9186pt too wide) in paragraph at lines 94--96
+\OT1/ptm/m/n/10 Several works has been pro-posed over the years that are based 
+on rep-re-sen-ta-tive points. The au-thors in [[]]
+ []
+
+
+Overfull \hbox (24.2175pt too wide) in paragraph at lines 105--106
 \OT1/ptm/m/n/10 A hi-er-ar-chi-cal al-go-rithm that works on dis-tributed and h
 et-ero-ge-neous data is pre-sented by [[]].
  []
 
-<distributed_architecture.pdf, id=19, 339.2675pt x 211.79124pt>
+[4] <distributed_architecture.pdf, id=23, 339.2675pt x 211.79124pt>
 File: distributed_architecture.pdf Graphic file (type pdf)
 
 <use distributed_architecture.pdf>
@@ -761,19 +767,19 @@ See the caption package documentation for explanation.
 LaTeX Font Info:    Font shape `OT1/ptm/bx/n' in size <10> not available
 (Font)              Font shape `OT1/ptm/b/n' tried instead on input line 130.
 
-LaTeX Warning: Reference `alg:snncorepointid' on page 4 undefined on input line
+LaTeX Warning: Reference `alg:snncorepointid' on page 5 undefined on input line
  130.
 
-[4]
+[5 <./distributed_architecture.pdf>]
 
 Package caption Warning: \label without proper reference on input line 210.
 See the caption package documentation for explanation.
 
 
-LaTeX Warning: Reference `alg:coresample' on page 5 undefined on input line 137
+LaTeX Warning: Reference `alg:coresample' on page 6 undefined on input line 137
 .
 
-<group_weights.pdf, id=27, 591.20876pt x 457.71pt>
+<group_weights.pdf, id=72, 591.20876pt x 457.71pt>
 File: group_weights.pdf Graphic file (type pdf)
  <use group_weights.pdf>
 Package pdftex.def Info: group_weights.pdf used on input line 141.
@@ -784,31 +790,29 @@ Package caption Warning: \label without proper reference on input line 252.
 See the caption package documentation for explanation.
 
 
-LaTeX Warning: Reference `alg:centralproc' on page 5 undefined on input line 15
+LaTeX Warning: Reference `alg:centralproc' on page 6 undefined on input line 15
 5.
 
-[5 <./distributed_architecture.pdf> <./group_weights.pdf>]
 LaTeX Font Info:    Try loading font information for OT1+pcr on input line 175.
-
 
 ("C:\Program Files (x86)\MiKTeX 2.9\tex\latex\psnfss\ot1pcr.fd"
 File: ot1pcr.fd 2001/06/04 font definitions for OT1/pcr.
 )
-<toy_example_original.pdf, id=89, 907.39pt x 331.2375pt>
+<toy_example_original.pdf, id=73, 907.39pt x 331.2375pt>
 File: toy_example_original.pdf Graphic file (type pdf)
 
 <use toy_example_original.pdf>
 Package pdftex.def Info: toy_example_original.pdf used on input line 261.
 (pdftex.def)             Requested size: 408.32173pt x 149.05548pt.
 
-<toy_example_after_Dsnn_2.pdf, id=90, 789.95125pt x 286.06876pt>
+<toy_example_after_Dsnn_2.pdf, id=74, 789.95125pt x 286.06876pt>
 File: toy_example_after_Dsnn_2.pdf Graphic file (type pdf)
 
 <use toy_example_after_Dsnn_2.pdf>
 Package pdftex.def Info: toy_example_after_Dsnn_2.pdf used on input line 268.
 (pdftex.def)             Requested size: 394.97466pt x 143.03403pt.
 
-<toy_example_after_Dsnn_1.pdf, id=91, 791.95876pt x 287.0725pt>
+<toy_example_after_Dsnn_1.pdf, id=75, 791.95876pt x 287.0725pt>
 File: toy_example_after_Dsnn_1.pdf Graphic file (type pdf)
 
 <use toy_example_after_Dsnn_1.pdf>
@@ -820,7 +824,8 @@ Overfull \hbox (11.13799pt too wide) in paragraph at lines 283--286
  widely used SNN-graph bi-sec-tion method[[]],
  []
 
-[6] [7 <./toy_example_original.pdf> <./toy_example_after_Dsnn_2.pdf>]
+[6 <./group_weights.pdf>] [7 <./toy_example_original.pdf>] [8 <./toy_example_af
+ter_Dsnn_2.pdf> <./toy_example_after_Dsnn_1.pdf>]
 
 ! LaTeX Error: File `./similarities/20NG-simcos' not found.
 
@@ -871,19 +876,19 @@ Type  H <return>  for immediate help.
 l.344 ...dth=\textwidth]{./similarities/ZF-simcos}
                                                   
 ? 
-[8 <./toy_example_after_Dsnn_1.pdf>]
+[9]
 Overfull \hbox (1.41777pt too wide) in paragraph at lines 357--358
 \OT1/ptm/m/n/10 monic mean be-tween the Ho-mo-gene-ity and Com-plete-ness score
 s. These scores, with the ex-cep-tion of the Adjusted-
  []
 
-<text_processing_steps.pdf, id=135, 559.08875pt x 140.525pt>
+<text_processing_steps.pdf, id=138, 559.08875pt x 140.525pt>
 File: text_processing_steps.pdf Graphic file (type pdf)
 
 <use text_processing_steps.pdf>
 Package pdftex.def Info: text_processing_steps.pdf used on input line 374.
 (pdftex.def)             Requested size: 391.35945pt x 98.3668pt.
- [9]
+ [10]
 Overfull \hbox (3.29427pt too wide) in paragraph at lines 428--428
 [][] 
  []
@@ -898,11 +903,14 @@ Overfull \hbox (1.26924pt too wide) in paragraph at lines 440--440
 [][] 
  []
 
-[10 <./text_processing_steps.pdf>] [11] [12
+[11 <./text_processing_steps.pdf>] [12] [13
 
-] [13] (distributed_snn.aux)
+] [14] (distributed_snn.aux)
 
 LaTeX Warning: There were undefined references.
+
+
+LaTeX Warning: Label(s) may have changed. Rerun to get cross-references right.
 
  )
 (\end occurred inside a group at level 1)
@@ -910,13 +918,13 @@ LaTeX Warning: There were undefined references.
 ### simple group (level 1) entered at line 1061 ({)
 ### bottom level 
 Here is how much of TeX's memory you used:
- 16707 strings out of 493634
- 316320 string characters out of 3141312
- 478717 words of memory out of 3000000
+ 16706 strings out of 493634
+ 316185 string characters out of 3141312
+ 479717 words of memory out of 3000000
  19710 multiletter control sequences out of 15000+200000
  32309 words of font info for 74 fonts, out of 3000000 for 9000
  1025 hyphenation exceptions out of 8191
- 62i,22n,92p,1644b,2948s stack positions out of 5000i,500n,10000p,200000b,50000s
+ 62i,22n,92p,1601b,2948s stack positions out of 5000i,500n,10000p,200000b,50000s
 {C:/Program Files (x86)/MiKTeX 2.9/fonts/enc/dvips/fontname/8r.
 enc}<C:/Program Files (x86)/MiKTeX 2.9/fonts/type1/public/amsfonts/cm/cmmi10.pf
 b><C:/Program Files (x86)/MiKTeX 2.9/fonts/type1/public/amsfonts/cm/cmmi5.pfb><
@@ -930,9 +938,9 @@ es (x86)/MiKTeX 2.9/fonts/type1/public/amsfonts/cm/cmsy7.pfb><C:/Program Files
 TeX 2.9/fonts/type1/urw/times/utmb8a.pfb><C:/Program Files (x86)/MiKTeX 2.9/fon
 ts/type1/urw/times/utmr8a.pfb><C:/Program Files (x86)/MiKTeX 2.9/fonts/type1/ur
 w/times/utmri8a.pfb>
-Output written on distributed_snn.pdf (13 pages, 573307 bytes).
+Output written on distributed_snn.pdf (14 pages, 579439 bytes).
 PDF statistics:
- 211 PDF objects out of 1000 (max. 8388607)
+ 214 PDF objects out of 1000 (max. 8388607)
  0 named destinations out of 1000 (max. 500000)
  43 words of extra memory for PDF output out of 10000 (max. 10000000)
 
