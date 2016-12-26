@@ -172,8 +172,8 @@ A thorough description appears in algorithm \ref{alg:centralproc}.
 $\mathcal{C}\leftarrow$ all points marked as  \textbf{core-point}\;
 \KwRet $\mathcal{C}$ , $\mathsf{SNN}_{k}$\;
   }
-  \label{alg:snncorepointid}
 \caption{Identification of core-points from a dataset}
+\label{alg:snncorepointid}
 \end{algorithm}
 
 %node
@@ -207,8 +207,8 @@ $\mathcal{C}\leftarrow$ all points marked as  \textbf{core-point}\;
  }
  \KwRet sampled data $S$\;%en L124 se ejecuta el cludtering sobre los datos centralizados.
  }
- \label{alg:coresample}
 \caption{Selection of representative points executed in a node}
+ \label{alg:coresample}
 \end{algorithm}
 
 %central
@@ -248,9 +248,9 @@ $\mathcal{C},\mathsf{SNN}_k\leftarrow$ \snncpts{$\mathcal{S}$, $k$, $\mathsf{Eps
 	}
 }
 %Labeled points in $\mathcal{S} Final set of points\;
-\KwResult{$\{l_p, p\in S\ |\ l_p\neq \mbox{\textbf{noise}}\}$}
-  \label{alg:centralproc}
+\KwResult{$\{l_p, p\in S\ |\ l_p\neq \mbox{\textbf{noise}}\}$}  
 \caption{Procedure executed by the master node to generate the list of representative points per group}
+\label{alg:centralproc}
 \end{algorithm}
 
 

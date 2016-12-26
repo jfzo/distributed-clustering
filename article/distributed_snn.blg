@@ -5,6 +5,10 @@ The style file: apalike.bst
 I found no \bibdata command---while reading file distributed_snn.aux
 Warning--I didn't find a database entry for "www"
 Warning--I didn't find a database entry for "CM13"
+Warning--I didn't find a database entry for "Yi14"
+Warning--I didn't find a database entry for "I14"
+Warning--I didn't find a database entry for "ZW13"
+Warning--I didn't find a database entry for "SC16"
 Warning--I didn't find a database entry for "N15"
 Warning--I didn't find a database entry for "JW05"
 Warning--I didn't find a database entry for "LHLX12"
@@ -32,7 +36,7 @@ Warning--I didn't find a database entry for "ZK02"
 Warning--I didn't find a database entry for "GRS98"
 You've used 0 entries,
             1935 wiz_defined-function locations,
-            523 strings with 3943 characters,
+            531 strings with 3973 characters,
 and the built_in function-call counts, 17 in all, are:
 = -- 0
 > -- 0
