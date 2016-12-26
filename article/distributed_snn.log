@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.14159265-2.6-1.40.17 (TeX Live 2016) (preloaded format=pdflatex 2016.5.22)  26 DEC 2016 16:19
+This is pdfTeX, Version 3.14159265-2.6-1.40.17 (TeX Live 2016) (preloaded format=pdflatex 2016.5.22)  26 DEC 2016 17:15
 entering extended mode
  restricted \write18 enabled.
  file:line:error style messages enabled.
@@ -828,7 +828,7 @@ o.pdf>
 (epstopdf)                    size: 73830 bytes
 (epstopdf)             Command: <repstopdf --outfile=./similarities/20NG-simcos
 -eps-converted-to.pdf ./similarities/20NG-simcos.eps>
-(epstopdf)             \includegraphics on input line 318.
+(epstopdf)             \includegraphics on input line 322.
 Package epstopdf Info: Output file is already uptodate.
 
 <./similarities/20NG-simcos-eps-converted-to.pdf, id=123, 433.62pt x 433.62pt>
@@ -836,7 +836,7 @@ File: ./similarities/20NG-simcos-eps-converted-to.pdf Graphic file (type pdf)
 
 <use ./similarities/20NG-simcos-eps-converted-to.pdf>
 Package pdftex.def Info: ./similarities/20NG-simcos-eps-converted-to.pdf used o
-n input line 318.
+n input line 322.
 (pdftex.def)             Requested size: 135.89174pt x 135.88966pt.
 Package epstopdf Info: Source file: <./similarities/DOE-simcos.eps>
 (epstopdf)                    date: 2016-12-26 16:14:21
@@ -847,7 +847,7 @@ Package epstopdf Info: Source file: <./similarities/DOE-simcos.eps>
 (epstopdf)                    size: 75429 bytes
 (epstopdf)             Command: <repstopdf --outfile=./similarities/DOE-simcos-
 eps-converted-to.pdf ./similarities/DOE-simcos.eps>
-(epstopdf)             \includegraphics on input line 325.
+(epstopdf)             \includegraphics on input line 329.
 Package epstopdf Info: Output file is already uptodate.
 
 <./similarities/DOE-simcos-eps-converted-to.pdf, id=124, 433.62pt x 433.62pt>
@@ -855,7 +855,7 @@ File: ./similarities/DOE-simcos-eps-converted-to.pdf Graphic file (type pdf)
 
 <use ./similarities/DOE-simcos-eps-converted-to.pdf>
 Package pdftex.def Info: ./similarities/DOE-simcos-eps-converted-to.pdf used on
- input line 325.
+ input line 329.
 (pdftex.def)             Requested size: 135.89174pt x 135.88966pt.
 Package epstopdf Info: Source file: <./similarities/FR-simcos.eps>
 (epstopdf)                    date: 2016-12-26 16:14:21
@@ -866,7 +866,7 @@ pdf>
 (epstopdf)                    size: 69690 bytes
 (epstopdf)             Command: <repstopdf --outfile=./similarities/FR-simcos-e
 ps-converted-to.pdf ./similarities/FR-simcos.eps>
-(epstopdf)             \includegraphics on input line 331.
+(epstopdf)             \includegraphics on input line 335.
 Package epstopdf Info: Output file is already uptodate.
 
 <./similarities/FR-simcos-eps-converted-to.pdf, id=125, 433.62pt x 433.62pt>
@@ -874,7 +874,7 @@ File: ./similarities/FR-simcos-eps-converted-to.pdf Graphic file (type pdf)
 
 <use ./similarities/FR-simcos-eps-converted-to.pdf>
 Package pdftex.def Info: ./similarities/FR-simcos-eps-converted-to.pdf used on 
-input line 331.
+input line 335.
 (pdftex.def)             Requested size: 135.89174pt x 135.88966pt.
 Package epstopdf Info: Source file: <./similarities/SJMN-simcos.eps>
 (epstopdf)                    date: 2016-12-26 16:14:21
@@ -885,7 +885,7 @@ o.pdf>
 (epstopdf)                    size: 70954 bytes
 (epstopdf)             Command: <repstopdf --outfile=./similarities/SJMN-simcos
 -eps-converted-to.pdf ./similarities/SJMN-simcos.eps>
-(epstopdf)             \includegraphics on input line 338.
+(epstopdf)             \includegraphics on input line 342.
 Package epstopdf Info: Output file is already uptodate.
 
 <./similarities/SJMN-simcos-eps-converted-to.pdf, id=126, 433.62pt x 433.62pt>
@@ -893,7 +893,7 @@ File: ./similarities/SJMN-simcos-eps-converted-to.pdf Graphic file (type pdf)
 
 <use ./similarities/SJMN-simcos-eps-converted-to.pdf>
 Package pdftex.def Info: ./similarities/SJMN-simcos-eps-converted-to.pdf used o
-n input line 338.
+n input line 342.
 (pdftex.def)             Requested size: 135.89174pt x 135.88966pt.
 Package epstopdf Info: Source file: <./similarities/ZF-simcos.eps>
 (epstopdf)                    date: 2016-12-26 16:14:21
@@ -904,7 +904,7 @@ pdf>
 (epstopdf)                    size: 75719 bytes
 (epstopdf)             Command: <repstopdf --outfile=./similarities/ZF-simcos-e
 ps-converted-to.pdf ./similarities/ZF-simcos.eps>
-(epstopdf)             \includegraphics on input line 344.
+(epstopdf)             \includegraphics on input line 348.
 Package epstopdf Info: Output file is already uptodate.
 
 <./similarities/ZF-simcos-eps-converted-to.pdf, id=127, 433.62pt x 433.62pt>
@@ -912,13 +912,13 @@ File: ./similarities/ZF-simcos-eps-converted-to.pdf Graphic file (type pdf)
 
 <use ./similarities/ZF-simcos-eps-converted-to.pdf>
 Package pdftex.def Info: ./similarities/ZF-simcos-eps-converted-to.pdf used on 
-input line 344.
+input line 348.
 (pdftex.def)             Requested size: 135.89174pt x 135.88966pt.
  [8 <./toy_example_after_Dsnn_1.pdf>] [9 <./similarities/20NG-simcos-eps-conver
 ted-to.pdf> <./similarities/DOE-simcos-eps-converted-to.pdf> <./similarities/FR
 -simcos-eps-converted-to.pdf> <./similarities/SJMN-simcos-eps-converted-to.pdf>
  <./similarities/ZF-simcos-eps-converted-to.pdf>]
-Overfull \hbox (1.41777pt too wide) in paragraph at lines 357--358
+Overfull \hbox (1.41777pt too wide) in paragraph at lines 361--362
 \OT1/ptm/m/n/10 monic mean be-tween the Ho-mo-gene-ity and Com-plete-ness score
 s. These scores, with the ex-cep-tion of the Adjusted-
  []
@@ -927,24 +927,24 @@ s. These scores, with the ex-cep-tion of the Adjusted-
 File: text_processing_steps.pdf Graphic file (type pdf)
 
 <use text_processing_steps.pdf>
-Package pdftex.def Info: text_processing_steps.pdf used on input line 374.
+Package pdftex.def Info: text_processing_steps.pdf used on input line 378.
 (pdftex.def)             Requested size: 391.35945pt x 98.3668pt.
- [10 <./text_processing_steps.pdf>]
-Overfull \hbox (3.29427pt too wide) in paragraph at lines 428--428
+ [10]
+Overfull \hbox (3.29427pt too wide) in paragraph at lines 432--432
 [][] 
  []
 
 
-Overfull \hbox (1.26924pt too wide) in paragraph at lines 434--434
+Overfull \hbox (1.26924pt too wide) in paragraph at lines 438--438
 [][] 
  []
 
 
-Overfull \hbox (1.26924pt too wide) in paragraph at lines 440--440
+Overfull \hbox (1.26924pt too wide) in paragraph at lines 444--444
 [][] 
  []
 
-[11] [12] [13
+[11 <./text_processing_steps.pdf>] [12] [13
 
 ] [14] (./distributed_snn.aux) )
 (\end occurred inside a group at level 1)
@@ -972,7 +972,7 @@ exlive/2016/texmf-dist/fonts/type1/urw/courier/ucrr8a.pfb></usr/local/texlive/2
 016/texmf-dist/fonts/type1/urw/times/utmb8a.pfb></usr/local/texlive/2016/texmf-
 dist/fonts/type1/urw/times/utmr8a.pfb></usr/local/texlive/2016/texmf-dist/fonts
 /type1/urw/times/utmri8a.pfb>
-Output written on distributed_snn.pdf (14 pages, 910446 bytes).
+Output written on distributed_snn.pdf (14 pages, 911101 bytes).
 PDF statistics:
  237 PDF objects out of 1000 (max. 8388607)
  159 compressed objects within 2 object streams

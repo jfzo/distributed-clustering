@@ -295,6 +295,10 @@ Also in table \ref{table:datasets}, the number of documents, the size of the voc
 
 In each one of the subfigures appearing in the Figure \ref{fig:sim_matrices}, similarities between all pair of documents in each collection are plotted by using a gray scale. Darker spots denote higher similarity values and also the documents were ordered consecutively by the group label. In all the figures, both axes contain the document numbers (starting from $0$) and, regarding the previously mentioned document order, it is possible to observe the groups denoted as darker rectangular patches along the diagonal line.
 
+From the Figure \ref{fig:sim_matrices}, it is possible to observe the following patterns in the similarity matrices: 
+First, 20NG and ZF collections show pairwise intra-similarities not much higher than the ones outside the groups. Also, in the case of the DOE collection, some spots outside the diagonal appear which suggests the existence of groups not registered in the original labelings.
+Finally, the matrices of the FR and SJMN collections show small squares embedded into the bigger squares along the diagonal which suggests the existence of a hierarchical structure underlying both document sets.
+
 \begin{table}[htbp]
 \centering
 \noindent\adjustbox{max width=\textwidth}{%
@@ -411,10 +415,14 @@ ZF      & 30& 10& 15 \\ \hline
 The results shown in Table \ref{table:results} demonstrate that the distributed SNN attains a comparable performance to the other two algorithms which also attained acceptable results. In most cases the proposal achieved better scores, nevertheless it is important to mention that a potential improvement is possible for the graph clustering algorithm by applying a better tuning strategy. 
 
 %comentar dificultad de los conjuntos de datos
-20NG and ZF datasets presented more difficulties to the centralized algorithms in terms of identifying homogeneous clusters.
 
-%HOM : class distribution within each cluster should be skewed to a single class.
-%COM : the distribution of cluster assignments within each class should be completely skewed to a single cluster.
+%
+
+% HOM y COM
+20NG and ZF datasets presented more difficulties to the centralized algorithms in terms of identifying homogeneous clusters (include only the points from a given class within a cluster), especially to the C-SNN algorithm. In contrast, the D-SNN performed in a stable manner along all the datasets attaining generally higher scores. This suggests that it is able to  overcome the weakness of its centralized relative when it faces data having low contrast between intra-group and extern pairwise similarities. 
+
+%HOM : class distribution within each cluster should be skewed to a single class. (Incluye solamente los puntos de la clase en el cluster)
+%COM : the distribution of cluster assignments within each class should be completely skewed to a single cluster. (Incluye todos los puntos de la clase)
 
 % variabilidad de los centralizados en sus desempeños
 % costos computacionales debido a al computo secuencial del algorutmo y calculo de matrices de similitud
