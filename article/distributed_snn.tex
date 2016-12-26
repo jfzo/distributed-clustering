@@ -358,12 +358,11 @@ To obtain a representative set of terms for each collection, i.e. its index term
 After the vocabulary of each collection is built, the number of occurrences of its terms in each document are computed and used to build the vector representing each document. That is, the number of occurrences of a term $i$ of the  vocabulary $\mathcal{V}$ in the document $j$ of the collection is denoted as $f_{i,j}$, also the number of documents of the collections that contain this term is denoted as $N_{i}$. By following this notation, the weight of term $i$ within a document $j$ is quantified by the expression:\[w_{i,j}=\frac{f_{i,j}}{ \operatorname*{max}_{t\in \mathcal{V}}f_{t,j} }\cdot\log\frac{|\mathcal{V}|}{N_{i}}\] In this way, the vector representing document $j$ is made up by the weight of each term of the vocabulary in it.
 
 \subsection*{Clustering quality measures}
-In this work, only external validation measures are employed, namely \textbf{Adjusted-Rand-Index}, \textbf{Adjusted-Mutual-Information}, \textbf{Homogeneity}, \textbf{Completeness} and the \textbf{V-Measure} which consists in the harmonic mean between the Homogeneity and Completeness scores. These scores, with the exception of  the Adjusted-Rand-Index which is within $[-1,1]$,  have positive values within $[0,1]$. Also, with the exception of Entropy, for all of them larger values denote a better clustering quality.
+In this work, only external validation measures are employed, namely \textbf{Adjusted-Rand-Index}, \textbf{Homogeneity}, \textbf{Completeness} and the \textbf{V-Measure} which consists in the harmonic mean between the Homogeneity and Completeness scores. These scores, with the exception of  the Adjusted-Rand-Index which is within $[-1,1]$,  have positive values within $[0,1]$. Also, with the exception of Entropy, for all of them larger values denote a better clustering quality.
 
 %\textbf{Entropy}, measures the extent in which all data from one class are spread into several groups and 
 %\textbf{Purity} measures the extent that a cluster contains only one class of data. 
-\textbf{Adjusted-Rand-Index} measures the matching between the true labels and the ones produced by the algorithm under study by counting the proportion of point-pairs whose relationship is the same in both labelings.
-\textbf{Adjusted-Mutual-Information}  accounts for the matching level between two clusterings by measuring the amount of information shared between the true labeling and the one proposed by an algorithm. Both scores are adjusted because of the original estimates are higher for two clusterings with a larger number of clusters, regardless of whether there is actually more information shared between them.
+\textbf{Adjusted-Rand-Index} measures the matching between the true labels and the ones produced by the algorithm under study by counting the proportion of point-pairs whose relationship is the same in both labelings. 
 \textbf{Homogeneity} measures the extent in which the clusters contain only data points which are members of a single class. 
 \textbf{Completeness} accounts for the extent in which all the data points that are members of a given class are elements of the same cluster.
 
@@ -413,24 +412,14 @@ ZF      & 30& 10& 15 \\ \hline
 
 \subsection*{Results}
 The results shown in Table \ref{table:results} demonstrate that the distributed SNN attains a comparable performance to the other two algorithms which also attained acceptable results. In most cases the proposal achieved better scores, nevertheless it is important to mention that a potential improvement is possible for the graph clustering algorithm by applying a better tuning strategy. 
+The  evaluation of the algorithms is made in terms of measuring their capability of dealing with low contrast between intra-class and extern pairwise similarities (low discrimination power of the similarity measure), the presence of classes with unequal sizes and the existence of hierarchical relations between the classes.
 
-%comentar dificultad de los conjuntos de datos
 
-%
+Figures \ref{fig:20NG_sim} and \ref{fig:zf_sim} suggest a low discrimination power of the underlying similarity measure in the vector term space spanned by the documents in each collection. This phenomenon affects both centralized methods, especially the C-SNN, by hindering their capability of identifying homogenous clusters.
 
-% Generar clusters homogeneos / puros
-The ZF collection presented more difficulties to the centralized algorithms in terms of identifying homogeneous clusters which could be explained by the poor contrast contrast between intra-class and extern pairwise similarities as depicted in Figure \ref{fig:doe_zf}. Also, in spite of the fact that the Graph centralized Clustering algorithm attained a high Purity score, the Homogeneity score seems rather low. 
+Figure \ref{fig:doe_sim} shows the existence of classes not indicated by the true labels of the collection. This phenomenon obscures the clustering task since there exist points belonging to several classes and also most of them are not declared in the collection labels. The impact of this event could be noticed by the low ARI scores in both centralized algorithms and also in the distributed proposal.
 
-% Representar a cada clase en un solo cluster
-
-%% No está tan bien esto !
-Regarding Purity and Homogeneity scores, 20NG and ZF datasets presented more difficulties to the centralized algorithms in terms of identifying homogeneous clusters (include only the points from a given class within a cluster), especially to the C-SNN algorithm. In contrast, the D-SNN performed in a stable manner along all the datasets attaining generally higher scores. 
-Additionally, considering Entropy and Completeness scores, 
-measures indicate how well the algorithms identified all the points in a class within a single cluster, i.e. both measures penalize the spread of a cluster along multiple clusters.
-
-These results suggest that the distributed proposal is able to  overcome the weakness of its centralized relative when it faces data having low contrast between intra-class and extern pairwise similarities. 
-
-In general, all the algorithms performed relatively well when faced to unbalanced data. This phenomenon can be especially observed in the DOE collection by observing the uneven patch sizes along the diagonal in its similarity matrix (Figure \ref{fig:doe_sim}).
+In general, all the algorithms performed relatively well when faced to unbalanced data. This phenomenon can be especially observed in the DOE collection by observing the uneven patch sizes along the diagonal in its similarity matrix (Figure \ref{fig:doe_sim}). This suggests that the shared near neighbor approach employed in all methods under comparison allows to address this obstacle.
 
 
 
@@ -442,27 +431,27 @@ In general, all the algorithms performed relatively well when faced to unbalance
 
 \begin{table}[!htbp]
 \centering
-\begin{tabular}{cl|cllll}
+\begin{tabular}{cl|clll}
 %ARI(3) AMI(4) NMI(5) HOM(6) COM(7) VMea(8)
-&\textbf{Dataset} & \textbf{ARI} & \textbf{AMI}  & \textbf{HOM} & \textbf{COM} & \textbf{VM} \\ \hline
+&\textbf{Dataset} & \textbf{ARI}  & \textbf{HOM} & \textbf{COM} & \textbf{VM} \\ \hline
 %CLUTO
-\parbox[t]{2mm}{\multirow{5}{*}{\rotatebox[origin=c]{90}{Graph Clust}}}  &  0.8307 &  0.6050 &  0.6421 &  0.6619 &  0.6425 &  0.6521  \\
-&DOE     & 0.4919 &  \textbf{0.7030}  &  0.7095 &  \textbf{0.7461} &  0.7273  \\
-&FR        & 0.6185 &  0.7266   &  0.7375 &  0.7452 &  0.7413  \\
-&SJMN   & 0.5953 &  0.7367 &  0.7505 &  0.7657 &  0.7580  \\
-&ZF        & 0.3817 &  0.5444 &  0.5593 &  0.6015 &  0.5796  \\ \hline
+\parbox[t]{2mm}{\multirow{5}{*}{\rotatebox[origin=c]{90}{Graph Clust}}}&20NG  &  0.6050 &  0.6619 &  0.6425 &  0.6521  \\
+&DOE     & 0.4919  &  0.7095 &  \textbf{0.7461} &  0.7273  \\
+&FR        & 0.6185  &  0.7375 &  0.7452 &  0.7413  \\
+&SJMN   & 0.5953  &  0.7505 &  0.7657 &  0.7580  \\
+&ZF        & 0.3817  &  0.5593 &  0.6015 &  0.5796  \\ \hline
 % CENTRALIZED
-\parbox[t]{2mm}{\multirow{5}{*}{\rotatebox[origin=c]{90}{C-SNN}}} &20NG    & 0.3432 & 0.3953 & 0.3990 & 0.4793 & 0.4355\\
-&DOE     & 0.4197 & 0.6370 &  0.6476 & 0.6711 & 0.6591\\
-&FR        & 0.7099 & \textbf{0.7834} &  0.7969 & 0.7919 & 0.7944\\
-&SJMN   & 0.5846 & 0.6820 & 0.7732 & 0.6960 & 0.7326\\
-&ZF        & 0.2845 & 0.5084 &  0.5750 & 0.5238 & 0.5482\\ \hline
+\parbox[t]{2mm}{\multirow{5}{*}{\rotatebox[origin=c]{90}{C-SNN}}} &20NG    & 0.3432 & 0.3990 & 0.4793 & 0.4355\\
+&DOE     & 0.4197 &  0.6476 & 0.6711 & 0.6591\\
+&FR        & 0.7099 &  0.7969 & 0.7919 & 0.7944\\
+&SJMN   & 0.5846 & 0.7732 & 0.6960 & 0.7326\\
+&ZF        & 0.2845 &  0.5750 & 0.5238 & 0.5482\\ \hline
 %DISTRIB
-\parbox[t]{2mm}{\multirow{5}{*}{\rotatebox[origin=c]{90}{D-SNN}}} &20NG    & \textbf{0.8400} & \textbf{0.8218} & \textbf{0.8262} & \textbf{0.9167} & \textbf{0.8691}  \\
-&DOE     & \textbf{0.6816} & 0.7029  &  \textbf{0.8794} & 0.7227 & \textbf{0.7934}  \\
-&FR        & \textbf{0.7224} & 0.7546  & \textbf{0.8947} & \textbf{0.7784} & \textbf{0.8325}  \\
-&SJMN   & \textbf{0.6360} & \textbf{0.7836}  & \textbf{0.8052} & \textbf{0.8040} & \textbf{0.8046}  \\
-&ZF        & \textbf{0.7809} & \textbf{0.7701}   & \textbf{0.9882} & \textbf{0.7877} & \textbf{0.8766}  \\ \hline
+\parbox[t]{2mm}{\multirow{5}{*}{\rotatebox[origin=c]{90}{D-SNN}}} &20NG    & \textbf{0.8400} & \textbf{0.8262} & \textbf{0.9167} & \textbf{0.8691}  \\
+&DOE     & \textbf{0.6816} & \textbf{0.8794} & 0.7227 & \textbf{0.7934}  \\
+&FR        & \textbf{0.7224} & \textbf{0.8947} & \textbf{0.7784} & \textbf{0.8325}  \\
+&SJMN   & \textbf{0.6360} & \textbf{0.8052} & \textbf{0.8040} & \textbf{0.8046}  \\
+&ZF        & \textbf{0.7809} & \textbf{0.9882} & \textbf{0.7877} & \textbf{0.8766}  \\ \hline
 \end{tabular}
 \caption{Performance attained by the graph clustering algorithm, the centralized SNN algorithm and the  distributed proposal  over the text collections. The best values for each measure in each dataset appear in bold face.}
 \label{table:results}
