@@ -1,4 +1,17 @@
+<<<<<<< HEAD
 This is pdfTeX, Version 3.14159265-2.6-1.40.17 (TeX Live 2016) (preloaded format=pdflatex 2016.5.22)  26 DEC 2016 17:15
+=======
+<<<<<<< HEAD
+This is pdfTeX, Version 3.14159265-2.6-1.40.16 (MiKTeX 2.9) (preloaded format=pdflatex 2016.4.6)  26 DEC 2016 17:32
+entering extended mode
+**./distributed_snn.tex
+(distributed_snn.tex
+LaTeX2e <2015/10/01> patch level 2
+Babel <3.9n> and hyphenation patterns for 69 languages loaded.
+("C:\Program Files (x86)\MiKTeX 2.9\tex\latex\base\article.cls"
+=======
+This is pdfTeX, Version 3.14159265-2.6-1.40.17 (TeX Live 2016) (preloaded format=pdflatex 2016.5.22)  26 DEC 2016 16:19
+>>>>>>> b1e488270046c5f10959e2fc8daf754d6178b975
 entering extended mode
  restricted \write18 enabled.
  file:line:error style messages enabled.
@@ -8,6 +21,7 @@ entering extended mode
 LaTeX2e <2016/03/31>
 Babel <3.9r> and hyphenation patterns for 83 language(s) loaded.
 (/usr/local/texlive/2016/texmf-dist/tex/latex/base/article.cls
+>>>>>>> 09201011857e28a301969f893eb312e004714ada
 Document Class: article 2014/09/29 v1.4h Standard LaTeX document class
 (/usr/local/texlive/2016/texmf-dist/tex/latex/base/size10.clo
 File: size10.clo 2014/09/29 v1.4h Standard LaTeX file (size option)
@@ -764,25 +778,81 @@ LaTeX Font Info:    Font shape `OT1/ptm/bx/n' in size <12> not available
 
 (/usr/local/texlive/2016/texmf-dist/tex/latex/ucs/data/uni-32.def
 File: uni-32.def 2013/05/13 UCS: Unicode data U+2000..U+20FF
+<<<<<<< HEAD
+) [2]
+[3]
+Overfull \hbox (56.9186pt too wide) in paragraph at lines 94--96
+\OT1/ptm/m/n/10 Several works has been pro-posed over the years that are based 
+on rep-re-sen-ta-tive points. The au-thors in [[]]
+ []
+
+
+Overfull \hbox (24.2175pt too wide) in paragraph at lines 105--106
+=======
 ) [2] [3]
 Overfull \hbox (24.2175pt too wide) in paragraph at lines 104--105
+>>>>>>> 09201011857e28a301969f893eb312e004714ada
 \OT1/ptm/m/n/10 A hi-er-ar-chi-cal al-go-rithm that works on dis-tributed and h
 et-ero-ge-neous data is pre-sented by [[]].
  []
 
+<<<<<<< HEAD
+[4] <distributed_architecture.pdf, id=23, 339.2675pt x 211.79124pt>
+=======
 <distributed_architecture.pdf, id=20, 339.2675pt x 211.79124pt>
+>>>>>>> 09201011857e28a301969f893eb312e004714ada
 File: distributed_architecture.pdf Graphic file (type pdf)
 
 <use distributed_architecture.pdf>
 Package pdftex.def Info: distributed_architecture.pdf used on input line 118.
 (pdftex.def)             Requested size: 271.41435pt x 169.43321pt.
+<<<<<<< HEAD
+
+
+Package caption Warning: \label without proper reference on input line 175.
+See the caption package documentation for explanation.
+
+LaTeX Font Info:    Font shape `OT1/ptm/bx/n' in size <10> not available
+(Font)              Font shape `OT1/ptm/b/n' tried instead on input line 130.
+
+LaTeX Warning: Reference `alg:snncorepointid' on page 5 undefined on input line
+ 130.
+
+[5 <./distributed_architecture.pdf>]
+
+Package caption Warning: \label without proper reference on input line 210.
+See the caption package documentation for explanation.
+
+
+LaTeX Warning: Reference `alg:coresample' on page 6 undefined on input line 137
+.
+
+<group_weights.pdf, id=72, 591.20876pt x 457.71pt>
+=======
  [4]
 <group_weights.pdf, id=28, 591.20876pt x 457.71pt>
+>>>>>>> 09201011857e28a301969f893eb312e004714ada
 File: group_weights.pdf Graphic file (type pdf)
  <use group_weights.pdf>
 Package pdftex.def Info: group_weights.pdf used on input line 141.
 (pdftex.def)             Requested size: 354.72798pt x 274.62813pt.
 
+<<<<<<< HEAD
+
+Package caption Warning: \label without proper reference on input line 252.
+See the caption package documentation for explanation.
+
+
+LaTeX Warning: Reference `alg:centralproc' on page 6 undefined on input line 15
+5.
+
+LaTeX Font Info:    Try loading font information for OT1+pcr on input line 175.
+
+("C:\Program Files (x86)\MiKTeX 2.9\tex\latex\psnfss\ot1pcr.fd"
+File: ot1pcr.fd 2001/06/04 font definitions for OT1/pcr.
+)
+<toy_example_original.pdf, id=73, 907.39pt x 331.2375pt>
+=======
 [5 <./distributed_architecture.pdf> <./group_weights.pdf>]
 LaTeX Font Info:    Font shape `OT1/ptm/bx/n' in size <10> not available
 (Font)              Font shape `OT1/ptm/b/n' tried instead on input line 175.
@@ -793,20 +863,29 @@ LaTeX Font Info:    Try loading font information for OT1+pcr on input line 175.
 File: ot1pcr.fd 2001/06/04 font definitions for OT1/pcr.
 )
 <toy_example_original.pdf, id=90, 907.39pt x 331.2375pt>
+>>>>>>> 09201011857e28a301969f893eb312e004714ada
 File: toy_example_original.pdf Graphic file (type pdf)
 
 <use toy_example_original.pdf>
 Package pdftex.def Info: toy_example_original.pdf used on input line 261.
 (pdftex.def)             Requested size: 408.32173pt x 149.05548pt.
 
+<<<<<<< HEAD
+<toy_example_after_Dsnn_2.pdf, id=74, 789.95125pt x 286.06876pt>
+=======
 <toy_example_after_Dsnn_2.pdf, id=91, 789.95125pt x 286.06876pt>
+>>>>>>> 09201011857e28a301969f893eb312e004714ada
 File: toy_example_after_Dsnn_2.pdf Graphic file (type pdf)
 
 <use toy_example_after_Dsnn_2.pdf>
 Package pdftex.def Info: toy_example_after_Dsnn_2.pdf used on input line 268.
 (pdftex.def)             Requested size: 394.97466pt x 143.03403pt.
 
+<<<<<<< HEAD
+<toy_example_after_Dsnn_1.pdf, id=75, 791.95876pt x 287.0725pt>
+=======
 <toy_example_after_Dsnn_1.pdf, id=92, 791.95876pt x 287.0725pt>
+>>>>>>> 09201011857e28a301969f893eb312e004714ada
 File: toy_example_after_Dsnn_1.pdf Graphic file (type pdf)
 
 <use toy_example_after_Dsnn_1.pdf>
@@ -818,6 +897,61 @@ Overfull \hbox (11.13799pt too wide) in paragraph at lines 283--286
  widely used SNN-graph bi-sec-tion method[[]],
  []
 
+<<<<<<< HEAD
+[6 <./group_weights.pdf>] [7 <./toy_example_original.pdf>] [8 <./toy_example_af
+ter_Dsnn_2.pdf> <./toy_example_after_Dsnn_1.pdf>]
+
+! LaTeX Error: File `./similarities/20NG-simcos' not found.
+
+See the LaTeX manual or LaTeX Companion for explanation.
+Type  H <return>  for immediate help.
+ ...                                              
+                                                  
+l.318 ...h=\textwidth]{./similarities/20NG-simcos}
+                                                  
+? 
+
+! LaTeX Error: File `./similarities/DOE-simcos' not found.
+
+See the LaTeX manual or LaTeX Companion for explanation.
+Type  H <return>  for immediate help.
+ ...                                              
+                                                  
+l.325 ...th=\textwidth]{./similarities/DOE-simcos}
+                                                  
+? 
+
+! LaTeX Error: File `./similarities/FR-simcos' not found.
+
+See the LaTeX manual or LaTeX Companion for explanation.
+Type  H <return>  for immediate help.
+ ...                                              
+                                                  
+l.331 ...dth=\textwidth]{./similarities/FR-simcos}
+                                                  
+? 
+
+! LaTeX Error: File `./similarities/SJMN-simcos' not found.
+
+See the LaTeX manual or LaTeX Companion for explanation.
+Type  H <return>  for immediate help.
+ ...                                              
+                                                  
+l.338 ...h=\textwidth]{./similarities/SJMN-simcos}
+                                                  
+? 
+
+! LaTeX Error: File `./similarities/ZF-simcos' not found.
+
+See the LaTeX manual or LaTeX Companion for explanation.
+Type  H <return>  for immediate help.
+ ...                                              
+                                                  
+l.344 ...dth=\textwidth]{./similarities/ZF-simcos}
+                                                  
+? 
+[9]
+=======
 [6] [7 <./toy_example_original.pdf> <./toy_example_after_Dsnn_2.pdf>]
 Package epstopdf Info: Source file: <./similarities/20NG-simcos.eps>
 (epstopdf)                    date: 2016-12-26 16:14:21
@@ -918,19 +1052,37 @@ input line 348.
 ted-to.pdf> <./similarities/DOE-simcos-eps-converted-to.pdf> <./similarities/FR
 -simcos-eps-converted-to.pdf> <./similarities/SJMN-simcos-eps-converted-to.pdf>
  <./similarities/ZF-simcos-eps-converted-to.pdf>]
+<<<<<<< HEAD
 Overfull \hbox (1.41777pt too wide) in paragraph at lines 361--362
+=======
+>>>>>>> 09201011857e28a301969f893eb312e004714ada
+Overfull \hbox (1.41777pt too wide) in paragraph at lines 357--358
+>>>>>>> b1e488270046c5f10959e2fc8daf754d6178b975
 \OT1/ptm/m/n/10 monic mean be-tween the Ho-mo-gene-ity and Com-plete-ness score
 s. These scores, with the ex-cep-tion of the Adjusted-
  []
 
+<<<<<<< HEAD
+<text_processing_steps.pdf, id=138, 559.08875pt x 140.525pt>
+=======
 <text_processing_steps.pdf, id=159, 559.08875pt x 140.525pt>
+>>>>>>> 09201011857e28a301969f893eb312e004714ada
 File: text_processing_steps.pdf Graphic file (type pdf)
 
 <use text_processing_steps.pdf>
 Package pdftex.def Info: text_processing_steps.pdf used on input line 378.
 (pdftex.def)             Requested size: 391.35945pt x 98.3668pt.
+<<<<<<< HEAD
  [10]
 Overfull \hbox (3.29427pt too wide) in paragraph at lines 432--432
+=======
+<<<<<<< HEAD
+ [10]
+=======
+ [10 <./text_processing_steps.pdf>]
+>>>>>>> 09201011857e28a301969f893eb312e004714ada
+Overfull \hbox (3.29427pt too wide) in paragraph at lines 428--428
+>>>>>>> b1e488270046c5f10959e2fc8daf754d6178b975
 [][] 
  []
 
@@ -944,14 +1096,56 @@ Overfull \hbox (1.26924pt too wide) in paragraph at lines 444--444
 [][] 
  []
 
+<<<<<<< HEAD
+[11 <./text_processing_steps.pdf>] [12] [13
+=======
+<<<<<<< HEAD
 [11 <./text_processing_steps.pdf>] [12] [13
 
+] [14] (distributed_snn.aux)
+
+LaTeX Warning: There were undefined references.
+
+
+LaTeX Warning: Label(s) may have changed. Rerun to get cross-references right.
+
+ )
+=======
+[11] [12] [13
+>>>>>>> b1e488270046c5f10959e2fc8daf754d6178b975
+
 ] [14] (./distributed_snn.aux) )
+>>>>>>> 09201011857e28a301969f893eb312e004714ada
 (\end occurred inside a group at level 1)
 
 ### simple group (level 1) entered at line 1061 ({)
 ### bottom level 
 Here is how much of TeX's memory you used:
+<<<<<<< HEAD
+ 16706 strings out of 493634
+ 316185 string characters out of 3141312
+ 479717 words of memory out of 3000000
+ 19710 multiletter control sequences out of 15000+200000
+ 32309 words of font info for 74 fonts, out of 3000000 for 9000
+ 1025 hyphenation exceptions out of 8191
+ 62i,22n,92p,1601b,2948s stack positions out of 5000i,500n,10000p,200000b,50000s
+{C:/Program Files (x86)/MiKTeX 2.9/fonts/enc/dvips/fontname/8r.
+enc}<C:/Program Files (x86)/MiKTeX 2.9/fonts/type1/public/amsfonts/cm/cmmi10.pf
+b><C:/Program Files (x86)/MiKTeX 2.9/fonts/type1/public/amsfonts/cm/cmmi5.pfb><
+C:/Program Files (x86)/MiKTeX 2.9/fonts/type1/public/amsfonts/cm/cmmi7.pfb><C:/
+Program Files (x86)/MiKTeX 2.9/fonts/type1/public/amsfonts/cm/cmr10.pfb><C:/Pro
+gram Files (x86)/MiKTeX 2.9/fonts/type1/public/amsfonts/cm/cmr7.pfb><C:/Program
+ Files (x86)/MiKTeX 2.9/fonts/type1/public/amsfonts/cm/cmss10.pfb><C:/Program F
+iles (x86)/MiKTeX 2.9/fonts/type1/public/amsfonts/cm/cmsy10.pfb><C:/Program Fil
+es (x86)/MiKTeX 2.9/fonts/type1/public/amsfonts/cm/cmsy7.pfb><C:/Program Files 
+(x86)/MiKTeX 2.9/fonts/type1/urw/courier/ucrr8a.pfb><C:/Program Files (x86)/MiK
+TeX 2.9/fonts/type1/urw/times/utmb8a.pfb><C:/Program Files (x86)/MiKTeX 2.9/fon
+ts/type1/urw/times/utmr8a.pfb><C:/Program Files (x86)/MiKTeX 2.9/fonts/type1/ur
+w/times/utmri8a.pfb>
+Output written on distributed_snn.pdf (14 pages, 579439 bytes).
+PDF statistics:
+ 214 PDF objects out of 1000 (max. 8388607)
+=======
  17082 strings out of 493014
  322232 string characters out of 6133351
  488393 words of memory out of 5000000
@@ -976,6 +1170,7 @@ Output written on distributed_snn.pdf (14 pages, 911101 bytes).
 PDF statistics:
  237 PDF objects out of 1000 (max. 8388607)
  159 compressed objects within 2 object streams
+>>>>>>> 09201011857e28a301969f893eb312e004714ada
  0 named destinations out of 1000 (max. 500000)
  68 words of extra memory for PDF output out of 10000 (max. 10000000)
 
