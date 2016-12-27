@@ -415,13 +415,14 @@ The results shown in Table \ref{table:results} demonstrate that the distributed 
 The  evaluation of the algorithms is made in terms of measuring their capability of dealing with low contrast between intra-class and extern pairwise similarities (low discrimination power of the similarity measure), the presence of classes with unequal sizes and the existence of hierarchical relations between the classes.
 
 
-Figures \ref{fig:20NG_sim} and \ref{fig:zf_sim} suggest a low discrimination power of the underlying similarity measure in the vector term space spanned by the documents in each collection. This phenomenon affects both centralized methods, especially the C-SNN, by hindering their capability of identifying homogenous clusters.
+Figures \ref{fig:20ng_sim} and \ref{fig:zf_sim} suggest a low discrimination power of the underlying similarity measure in the vector term space spanned by the document vectors in each collection. This phenomenon affects both centralized methods, especially the C-SNN, by hindering their capability of identifying homogenous clusters.
 
-Figure \ref{fig:doe_sim} shows the existence of classes not indicated by the true labels of the collection. This phenomenon obscures the clustering task since there exist points belonging to several classes and also most of them are not declared in the collection labels. The impact of this event could be noticed by the low ARI scores in both centralized algorithms and also in the distributed proposal.
+Figure \ref{fig:doe_sim} shows the existence of classes not indicated by the true labels of the collection. This phenomenon obscures the clustering task since there exist points belonging to several classes and also most of them are not declared in the collection labels. The impact of this event could be noticed by lower ARI scores in both centralized algorithms and also in the distributed proposal.
 
 In general, all the algorithms performed relatively well when faced to unbalanced data. This phenomenon can be especially observed in the DOE collection by observing the uneven patch sizes along the diagonal in its similarity matrix (Figure \ref{fig:doe_sim}). This suggests that the shared near neighbor approach employed in all methods under comparison allows to address this obstacle.
 
 
+Figure \ref{fig:sjmn_sim} shows embedded square patches along the diagonal which suggests a hierarchical structure of the underlying classes. This effect is captured by the lower ARI scores in all methods.
 
 %HOM : class distribution within each cluster should be skewed to a single class. (Incluye solamente los puntos de la clase en el cluster)
 %COM : the distribution of cluster assignments within each class should be completely skewed to a single cluster. (Incluye todos los puntos de la clase)
