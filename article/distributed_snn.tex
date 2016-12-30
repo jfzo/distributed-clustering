@@ -165,9 +165,9 @@ A thorough description appears in algorithm \ref{alg:centralproc}.
   \ForEach{$p\in\mathcal{D}$}{compute $KNN_{k}(p)$\;}
   \ForEach{$p\in \mathcal{D}$}{
   	\ForEach{$q\neq p\in \mathcal{D}$}{
-		$\mathsf{SNN}_{k}(p,q)\leftarrow \#(KNN_{k}(p)\cap KNN_{k}(q))$\; 
+		$\mathsf{SNN}_{k}(p,q)\leftarrow \left\vert{KNN_{k}(p)\cap KNN_{k}(q)}\right\vert$\; 
     }
-    $\mathsf{density}(p)\leftarrow \#\{q\neq p\in\mathcal{D} |\mathsf{SNN}_{k}(p,q)>\mathsf{Eps}\}$\;
+    $\mathsf{density}(p)\leftarrow \left\vert{\{q\neq p\in\mathcal{D}:\mathsf{SNN}_{k}(p,q)>\mathsf{Eps}\}}\right\vert$\;
     \lIf{$\mathsf{density}(p)>\mathsf{MinPts}$}{Mark $p$ as \textbf{core-point}}
   }
 $\mathcal{C}\leftarrow$ all points marked as  \textbf{core-point}\;
@@ -249,7 +249,7 @@ $\mathcal{C},\mathsf{SNN}_k\leftarrow$ \snncpts{$\mathcal{S}$, $k$, $\mathsf{Eps
 	}
 }
 %Labeled points in $\mathcal{S} Final set of points\;
-\KwResult{$\{l_p, p\in S\ |\ l_p\neq \mbox{\textbf{noise}}\}$}  
+\KwResult{$\{l_p, p\in S\ :\ l_p\neq \mbox{\textbf{noise}}\}$}  
 \caption{Procedure executed by the master node to generate the list of representative points per group}
 \label{alg:centralproc}
 \end{algorithm}
@@ -281,16 +281,18 @@ $\mathcal{C},\mathsf{SNN}_k\leftarrow$ \snncpts{$\mathcal{S}$, $k$, $\mathsf{Eps
 
 
 \section{Methodology and Experimental results}
-In this section, we assess the performance of the proposed distributed algorithm and contrasts its effectiveness against a centralized version and against an efficient and widely used SNN-graph bisection method\cite{ZK02}, both of them use the complete dataset loaded into main memory.
+In this section, we assess the performance of the proposed distributed algorithm  over several datasets and contrast its effectiveness against a centralized method proposed by \cite{ESK03} denoted in this work as \textit{C-SNN} and a graph bisection method successfully employed in the text clustering task \cite{ZK02} denoted in this work as \textit{Graph Clust}. Each collection is equally distributed onto the different nodes in which the initial stage procedure is performed. Then, the results obtained after performing the final stage procedure are compared against the results attained by the centralized methods over each complete collection.
 % se podrian presentar brevemente los métodos con que se comparará
 % se podria introducir aqui los hallazgos que encontramos luego de los experimentos.
+
+
 
 Initially, a proof of concept was made by applying the algorithm over the synthetic dataset shown in figure \ref{fig:toy_original} which was proposed by \cite{GRS98}. Since this dataset contains points in two dimensions, the discriminative capability of the proposal in presence of  high dimensional data is not assessed. In spite of that, the effectiveness of the distributed algorithm and its robustness to noise in the data are evaluated in a qualitative fashion. The obtained clusters in two independent runs with different parameters are depicted in figures \ref{fig:toy_dsnn1} and \ref{fig:toy_dsnn2}.
 
 %comentarios de los resultados
 By contrasting figure \ref{fig:toy_original} against \ref{fig:toy_dsnn1} and then against figure \ref{fig:toy_dsnn2}, it is noticed that the noise layer was removed by the clustering algorithm in both cases. Additionally, the increase in the Eps value had an impact onto the sensitivity of the algorithm to detect outliers, i.e. a higher value for this parameter was accompanied by an increasing rate of points marked as noise as it is specially noticed in the chain of outliers that connects the two ellipsoids in figure \ref{fig:toy_original}.
 
-\subsection*{Datasets}
+\subsection{Datasets}
 The experiments were performed over 5 collections containing documents represented as vectors in high dimensional term spaces. By following the descriptions shown in table \ref{table:datasets}, firstly the 20-Newsgroup (M5 partition) collection contains $5000$ newsgroup documents coming from different subjects, namely computers, motorcycles, baseball, science and politics. Then, the remaining document sets were extracted from the Tipster collection\footnote{\url{https://tac.nist.gov/data/data_desc.html#TIPSTER} (Last visit on November 8th, 2016.)} and comprise several heterogeneous datasets such as \textit{DOE} which contains short abstracts of the Department of Energy, and \textit{FR} which contains reports of actions taken by U.S. government agencies.
 Also in table \ref{table:datasets}, the number of documents, the size of the vocabulary, the number of classes and the percentage of non zero values (a measure of the sparsity of the collection) are shown. As a final remark, all collections are quite sparse and also their document vectors are spanned onto high dimensional term spaces with tens of thousands of features. 
 
@@ -358,7 +360,7 @@ To obtain a representative set of terms for each collection, i.e. its index term
 
 After the vocabulary of each collection is built, the number of occurrences of its terms in each document are computed and used to build the vector representing each document. That is, the number of occurrences of a term $i$ of the  vocabulary $\mathcal{V}$ in the document $j$ of the collection is denoted as $f_{i,j}$, also the number of documents of the collections that contain this term is denoted as $N_{i}$. By following this notation, the weight of term $i$ within a document $j$ is quantified by the expression:\[w_{i,j}=\frac{f_{i,j}}{ \operatorname*{max}_{t\in \mathcal{V}}f_{t,j} }\cdot\log\frac{|\mathcal{V}|}{N_{i}}\] In this way, the vector representing document $j$ is made up by the weight of each term of the vocabulary in it.
 
-\subsection*{Clustering quality measures}
+\subsection{Clustering quality measures}
 In this work, only external validation measures are employed, namely \textbf{Adjusted-Mutual-Information}, \textbf{Homogeneity}, \textbf{Completeness} and the \textbf{V-Measure} which consists in the harmonic mean between the Homogeneity and Completeness scores. These scores, with the exception of  the Adjusted-Rand-Index which is within $[-1,1]$,  have positive values within $[0,1]$. Also, with the exception of Entropy, for all of them larger values denote a better clustering quality.
 
 %\textbf{Entropy}, measures the extent in which all data from one class are spread into several groups and 
@@ -369,7 +371,7 @@ In this work, only external validation measures are employed, namely \textbf{Adj
 \textbf{Completeness} accounts for the extent in which all the data points that are members of a given class are elements of the same cluster.
 
 
-\subsection*{Parameter tuning}
+\subsection{Parameter tuning}
 In order to report the best performance found for each algorithm, its parameters must be tuned.
 Hence, for each algorithm a grid search is performed seeking the parameter values that allow to attain the best algorithm performance. The parameter grid used for the Centralized and Distributed SNN clustering algorithms consists of $288$ configurations where the values of $K$ are in $\{50, 70, 90, 110\}$, $\mathsf{Eps}$ are in $\{3, 5, 8, 10, 15, 20, 25, 30, 35, 40, 45, 50\}$ and $\mathsf{MinPts}$ are in $\{5, 10, 15, 20, 25, 30\}$. For the SNN-Graph bisection algorithm the same values for $K$ were tested but no difference in the performance was detected. In Tables \ref{table:centralizedsnn_params} and \ref{table:distributedsnn_params} the parameters chosen  after the tuning procedure are detailed.
 
@@ -412,13 +414,11 @@ ZF      & 30& 10& 15 \\ \hline
 \end{table}
 
 
-\subsection*{Results}
-The results shown in Table \ref{table:results} demonstrate that the distributed SNN attains a comparable performance to the other two algorithms which also attained acceptable results. In most cases the proposal achieved better scores, nevertheless it is important to mention that a potential improvement is possible for the graph clustering algorithm by applying a better tuning strategy. 
+\subsection{Results} % TODO: Comentar algo respecto de los resultados y los parámetros
 The  evaluation of the algorithms is made in terms of measuring their capability of 
 dealing with low contrast between intra-class and extern pairwise similarities (low discrimination power of the similarity measure), 
 the presence of classes with unequal sizes and 
 the existence of hierarchical relations between the classes.
-
 
 Figures \ref{fig:20ng_sim} and \ref{fig:zf_sim} suggest a low discrimination power of the underlying similarity measure in the vector term space spanned by the document vectors in each collection. This phenomenon affects both centralized methods, especially the C-SNN over the 20NG dataset, by hindering their capability of identifying homogenous clusters. This is also shown by the lower values of the AMI score attained.
 
@@ -460,17 +460,25 @@ Figures \ref{fig:fr_sim} and \ref{fig:sjmn_sim} show embedded square patches alo
 \label{table:results}
 \end{table}
 
+\subsection{Analysis of the results}
+The results shown in Table \ref{table:results} demonstrate that the distributed SNN obtains a comparable and even superior performance to the other two algorithms which also attained acceptable results. In most cases the proposal achieved better scores, nevertheless it is important to mention that a potential improvement is possible for the graph clustering algorithm by applying a better tuning strategy. 
+
+% dealing with low contrast between intra-class and extern pairwise similarities (low discrimination power of the similarity measure), 
+% the presence of classes with unequal sizes and 
+% the existence of hierarchical relations between the classes
+
+The performances achieved by the three algorithms over datasets presenting unequal group sizes and the existence of hierarchical relations between groups are comparable. This is an expected behavior of the shared-nearest-neighbor approach over high dimensional data. Nevertheless, results interesting that the distributed proposal maintains this capability. 
+Results interesting to notice that the performance achieved by the proposal over text collections presenting low contrast between intra-class and extern pairwise similarities is considerably higher than the other two methods under comparison. This result suggests that the core-point extraction procedure together with the sampling strategy followed to transmit the representatives to the central node enable a much clearer discrimination of each group.
 
 
 \section{Conclusions and future work}
-In this work, the hypothesis consists in that the proposal is able to deal with distributed text collections and then to recover the group structure underlying the whole dataset with a quality comparable to centralized algorithms successfully used in the clustering literature.
+In this work, a distributed clustering method capable of dealing with massive text collections is proposed. In order to assess its utility especially for recovering the group structure underlying each collection, its performance is contrasted against two similar centralized approaches (SNN based methods).
 
+Several real text collections are employed with the aim to show the weaknesses and strengths of the shared-nearest-neighbor approach in an isolated way from the strengths of the proposed method. The results suggest that the proposed method, besides its power to process big collections in a distributed fashion, maintains the good properties of its originative approach and at the same time improves the capability of dealing with the low discrimination power of the underlying similarity measure. 
 
 %% OJO  CON ESTA FRASE ...
-Beyond the labeling of each data point, the task that we found more important specially in BIgData scenarios is the cluster recovery task. Its aim is to summarize a data collection by reconstructing the group structure underlying the set of data points.
-
-
-
+The proposed method can be easily extended to obtain a hypothetical labeling for each data point of the collection. That is, after the final stage in the central node, the labels of the clustered core-points can be re-transmitted to their original workers. Then, the local documents can be labeled according to their nearest core-point label.
+Nevertheless although this task is very important for automatic tagging of collections (e.g. Automatic generation of Web directories), we think that the main contribution of this work lies in the \textit{cluster recovery task}, whose aim is to obtain a summary of the groups hidden in a large or a distributed collection infeasible to process on a single machine. 
 
 
 
