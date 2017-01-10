@@ -3,9 +3,9 @@ clear;
 clc;
 %textdatasets = cellstr(['SJMN';'FR  ';'DOE ';'ZF  ';'20ng';'WSJ ';'AP
 %']); % last two could not be processed.
-textdatasets = cellstr(['SJMN';'FR  ';'DOE ';'ZF  ';'20ng']);
+%textdatasets = cellstr(['SJMN';'FR  ';'DOE ';'ZF  ';'20ng']);
 %textdatasets = cellstr(['SJMN';'FR  ']);
-%textdatasets = cellstr(['DOE ';'ZF  ';'20ng']);
+textdatasets = cellstr(['DOE ';'ZF  ';'20ng']);
 
 range_Eps = horzcat([3 5 8 10], 15:5:50);
 %range_Eps = 15:5:50;
@@ -67,7 +67,7 @@ for ds=1:length(textdatasets)
 end
 
 %% To export the results into a format understood by the python script clustering_scores.py
-clear;
+clear;50, 70, 90, 
 clc;
 %textdatasets = cellstr(['SJMN';'FR  ';'DOE ';'ZF  ';'20ng']);
 %textdatasets = cellstr(['SJMN';'FR  ']);
@@ -76,7 +76,7 @@ textdatasets = cellstr(['DOE ';'ZF  ';'20ng']);
 
 for ds=1:length(textdatasets)
     %for K=[50, 70, 90]
-    for K=[50, 70, 90, 110]
+    for K=[90, 110]
         %load(sprintf('distributed_results_k%d.mat',K));
         load(sprintf('tipster_results/distributed_%s_k%d.mat',textdatasets{ds},K));
 
@@ -192,3 +192,61 @@ for K=[50, 70, 90, 110]
     end
 end
 
+
+%% To perform an analysis of the elapsed times
+clear;
+clc;
+textdatasets = cellstr(['SJMN';'FR  ';'DOE ';'ZF  ';'20ng']);
+%textdatasets = cellstr(['SJMN';'FR  ']);
+%textdatasets = cellstr(['DOE ';'ZF  ';'20ng']);
+%textdatasets = cellstr(['20ng']);
+
+ETDATA = containers.Map([textdatasets], cell(length(textdatasets),1));
+
+for ds=1:length(textdatasets)
+    %for K=[50, 70, 90]
+    etimes = cell(4, 1); % One for each value of K
+    c = 1;
+    for K=[50, 70, 90, 110]
+        %load(sprintf('distributed_results_k%d.mat',K));
+        load(sprintf('tipster_results/distributed_%s_k%d.mat',textdatasets{ds},K));
+
+        for i=1:size(results_K,1)
+            for j=1:size(results_K,2)
+
+                if ~ iscell(results_K{i,j})
+                    display(sprintf('Could not process results for dataset %s with K:%d Eps:%d MinPts:%d',textdatasets{ds},K,range_Eps(i), range_MinPts(j)));
+                    continue;
+                end
+                etimes{c,1} = [etimes{c,1}; results_K{i,j}{5}];
+
+                %display(sprintf('Writing results to tipster_results/figs/distributed_%s_k%d_eps%d_minpts%d.dat',textdatasets{ds}, K,range_Eps(i), range_MinPts(j)) );
+                %csvwrite(sprintf('tipster_results/figs/distributed_%s_k%d_eps%d_minpts%d.dat',textdatasets{ds}, K,range_Eps(i), range_MinPts(j)), horzcat(A_LBLS, T_LBLS))
+            end
+        end
+        %subplot(2,2,c);
+        %boxplot(etimes{c,1});
+        c = c + 1;
+    end
+    ETDATA(textdatasets{ds}) = etimes;
+        
+    % Generate the boxplot for each value of K
+    % figure
+    % subplot(2,1,1)
+    % scatter(CT_DATA(:,1), CT_DATA(:,2), 5, CT_DATA_LBLS,'o')
+    % title({['Centralized core-pts with original labels']});
+    % legend('off')
+    % subplot(2,1,2)
+    % scatter(CT_DATA(:,1), CT_DATA(:,2), 5, CORE_CLST_CT,'o')
+    % title({['Centralized core-pts with identified labels']});
+    % legend('off')
+end
+
+%'20ng'    'DOE'    'FR'    'SJMN'    'ZF'
+R = ETDATA('20ng')
+x = [R{1,1};R{2,1};R{3,1};R{4,1}];
+g = [ones(size(R{1,1}));2*ones(size(R{2,1}));3*ones(size(R{3,1}));4*ones(size(R{4,1}))];
+boxplot(x,g)
+set(gca,'XTickLabel',{'K=50','K=70','K=90','K=110'})
+ylabel('time secs.')
+ylabel('time [secs]')
