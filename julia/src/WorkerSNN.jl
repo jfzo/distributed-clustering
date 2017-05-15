@@ -193,10 +193,14 @@ end
     return (cluster_assignment, cpoints, cluster_labels)
 end
 
+
+
 ####
 @everywhere function local_work(A::SharedArray{Float64,2}, assigned_instances::Array{Int64,1}, Eps::Int64, MinPts::Int64, k::Int64, pct_sample::Float64;similarity::String="cosine")
-    # Returns a core-point sample (col ids of the original matrix as denoted by assigned_instances).
-    # This sample is built from the core-points detected by the SNN algorithm ran within the node.
+    #=
+     Returns a core-point sample (col ids of the original matrix as denoted by assigned_instances).
+     This sample is built from the core-points detected by the SNN algorithm ran within the node.
+    =#
 
     
     # It is assumed that 'A' contains the data matrix (rows are features and columns are instances).
@@ -262,4 +266,44 @@ end
     
     =#
     
+end
+
+
+@everywhere function local_work(assigned_instances::Array{Int64,1}, inputPath::String, Eps::Int64, MinPts::Int64, k::Int64, pct_sample::Float64;similarity::String="cosine")
+    #=
+     Takes a file path where the data matrix is stored.
+    
+     Returns a core-point sample (col ids of the original matrix as denoted by assigned_instances).
+     This sample is built from the core-points detected by the SNN algorithm ran within the node.
+    =#
+
+    N, dim = get_header_from_input_file(inputPath)
+    #d = Array{Float64,2}(dim, length(assigned_instances));
+    d = get_slice_from_input_file(inputPath, assigned_instances);
+    
+    cluster_assignment, core_points, cluster_labels = snn_clustering(d, Eps, MinPts, k, similarity=similarity)
+    # Note that the indexes appearing within arrays cluster_assignment and core_points are in range [1:lenght(assigned_instances)]
+    # ... thus in order to obtain the index relative to the array A (whole data), the indirection to apply is 
+    # ... assigned_instances[i]
+    ###
+
+    nCp = length(core_points)
+    n_sampled_points = round(Int, pct_sample*nCp);
+    
+    if length(cluster_labels) == 0
+        return []
+    end
+    
+    corepts_labels = cluster_assignment[core_points];# same length as core_points filled with their cluster labels
+    data_weight = zeros(nCp);
+    
+    for i = cluster_labels
+        in_cluster_i = find(x -> x==i, corepts_labels);#relative to vector  core_points
+        Nc = length(in_cluster_i);
+        Wc = 1e-10 + ( (1.0 - (Nc/nCp)) / (2.0*Nc) ); # 1e-10 added to avoid problems when only one cluster is found.
+        data_weight[in_cluster_i] = Wc;
+    end
+    
+    sampled_points = sample(collect(1:nCp), WeightVec(data_weight), n_sampled_points , replace=false);
+    return assigned_instances[core_points[sampled_points]]
 end
