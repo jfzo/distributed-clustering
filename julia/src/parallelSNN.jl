@@ -5,7 +5,7 @@ if length(workers()) > 1
     rmprocs(workers())
 end
     
-nofworkers = 4
+nofworkers = 12
 addprocs(nofworkers)
 results = Dict{String,Array{Int32,1}}()
     
@@ -17,22 +17,12 @@ results = Dict{String,Array{Int32,1}}()
 using PyCall
 @pyimport clustering_scores as cs #clustering_scores.py must be in the path.
     
+DATA_PATH = "text-data/AP_out.dat";
+LABEL_PATH = "text-data/AP_out.dat.labels";
 
-
-#A = readdlm("text-data/cure_data.csv", ',', Float64);
-#real_labels = convert(Array{Int32,1}, A[:,3]);
-#DATA = convert(SharedArray, transpose(A[:,1:2]));
-
-
-#DATA = zeros(41223,4743)
-#DATA = SharedArray(Float64,41223,4743)
-#DATA[1,1] = 10.1;
-#DATA[26731,1] = 0.1337;
-#get_cluto_data(DATA, "text-data/20ng_out.dat");
-
-real_labels = readdlm("text-data/20ng_out.dat.labels", Int32);
+real_labels = readdlm(LABEL_PATH, Int32);
 #DATA = convert(SharedArray, DATA);
-N, dims = get_header_from_input_file("text-data/20ng_out.dat");
+N, dims = get_header_from_input_file(DATA_PATH);
 #get_slice_from_input_file(inputPath::String, assigned_instances::Array{Int64,1})
 
 #N = size(DATA, 2);    
@@ -40,10 +30,16 @@ partition = generate_partition(nofworkers, N) #N instances assigned to nofworker
 
 #worker_Eps, worker_MinPts, worker_k, pct_sample = 8, 25, 30, 0.3
 
+#=
 range_Eps = [20 30 40 50 60 70 80];
 range_MinPts = [20 30 40 50 60 70 80];
 range_K = [30 50 70 90 110];
+=#
 pct_sample = 0.3;
+
+range_Eps = vcat([3, 5, 8, 10], 15:5:50);
+range_MinPts = collect(5:5:30);
+range_K = [50, 70, 90, 110];
 
 max_dsnn_perf = -1;
 max_dsnn_perf_tuple = []
@@ -52,10 +48,10 @@ for Eps=range_Eps
     for MinPts=range_MinPts
         for K=range_K 
             #@time begin
-                #master_work(results, "text-data/20ng_out.dat", partition, Eps, MinPts, K, pct_sample);
+                #master_work(results, DATA_PATH, partition, Eps, MinPts, K, pct_sample);
             #end
             
-            master_work(results, "text-data/20ng_out.dat", partition, Eps, MinPts, K, pct_sample);
+            master_work(results, DATA_PATH, partition, Eps, MinPts, K, pct_sample);
             
             scores = cs.clustering_scores(real_labels[results["sampledpoints"]], results["assignments"], false);
             sampled_pts = length(results["sampledpoints"]);
