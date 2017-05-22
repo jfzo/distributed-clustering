@@ -1,9 +1,11 @@
-@everywhere function euclidean_sim(X::Array{Float64,2}, S::Array{Float64,2})
+function euclidean_sim(X::Array{Float64,2}, S::Array{Float64,2})
     # X : Data matrix of dxN
     # S : Data matrix of NxN that will be filled with cosine similarity
 
     N = size(X,2)
     D = pairwise(Euclidean(), X);
+    
+    #=
     min_D = 0.0;
     max_D = 0.0;
     for i=collect(1:N)
@@ -14,13 +16,16 @@
     end
 
     tmpS = 1 - (D - min_D)/(max_D-min_D);
+    =#
+    
+    tmpS = 1./(1+D);
     
     for i=collect(1:N)
         S[:,i] = tmpS[:,i];
     end
 end
 
-@everywhere function cosine_sim(X::Array{Float64,2}, S::Array{Float64,2})
+function cosine_sim(X::Array{Float64,2}, S::Array{Float64,2})
     # X : Data matrix of dxN
     # S : Data matrix of NxN that will be filled with cosine similarity
     
@@ -38,7 +43,7 @@ end
     end
 end
 
-@everywhere function shared_nn_sim(P::Array{Float64,2}, k::Int64, Snn::Array{Float64,2}, S::Array{Float64,2};similarity::String="cosine")
+function shared_nn_sim(P::Array{Float64,2}, k::Int64, Snn::Array{Float64,2}, S::Array{Float64,2};similarity::String="cosine")
     # P : Data matrix of dxN
     # k : Size of the (near)neighborhood
     # Snn is a NxN matrix and it will be filled with SNN similarity (diagonal set to 0)
@@ -77,7 +82,7 @@ end
         
 end
 
-@everywhere function snn_clustering(D::Array{Float64,2}, Eps::Int64, MinPts::Int64, k::Int64;similarity::String="cosine")    
+function snn_clustering(D::Array{Float64,2}, Eps::Int64, MinPts::Int64, k::Int64;similarity::String="cosine")    
     # D : Data matrix of dxN
 
     N = size(D,2)
@@ -114,32 +119,18 @@ end
             clst_id = clst_id + 1;
             push!(cluster_labels, clst_id);
             cluster_assignment[cpoints[i]] = clst_id;
-            
+            #Code based on a bucle (copied from the Python version)
+            for j = collect((i+1):nCp) 
+                if Snn[cpoints[j], cpoints[i]] >= Eps
+                    cluster_assignment[cpoints[j]] = cluster_assignment[cpoints[i]];
+                end
+            end           
         end
 
         # Find non labeled core points having SNN-sim > Eps
         # with current core-point and assign the same label.
         # Note: Unlabeled core-points are cpoints[unlabeled_cpoints_ixs]            
       
-        #=
-        unlabeled_cpoints = find(x -> x==0, cluster_assignment[cpoints[i+1:nCp]]); #relative to cluster_assignment[cpoints]
-        unlabeled_cpoints_ixs = cpoints[i+1:nCp][unlabeled_cpoints];# relative to 1:N
-        if length(unlabeled_cpoints_ixs) == 0
-            break
-        end
-        # Note: near_cpoints are current columns of the SNN Matrix
-        near_cpoints = find(x -> x>=Eps, Snn[unlabeled_cpoints_ixs, cpoints[i]]);
-        cluster_assignment[unlabeled_cpoints_ixs[near_cpoints]] = clst_id;
-
-        =#
-              
-        
-        #Code based on a bucle (copied from the Python version)
-        for j = collect((i+1):nCp) 
-            if Snn[cpoints[j], cpoints[i]] >= Eps
-                cluster_assignment[cpoints[j]] = cluster_assignment[cpoints[i]];
-            end
-        end           
     end
     
     #= 
@@ -196,7 +187,7 @@ end
 
 
 ####
-@everywhere function local_work(A::SharedArray{Float64,2}, assigned_instances::Array{Int64,1}, Eps::Int64, MinPts::Int64, k::Int64, pct_sample::Float64;similarity::String="cosine")
+function local_work(A::SharedArray{Float64,2}, assigned_instances::Array{Int64,1}, Eps::Int64, MinPts::Int64, k::Int64, pct_sample::Float64;similarity::String="cosine")
     #=
      Returns a core-point sample (col ids of the original matrix as denoted by assigned_instances).
      This sample is built from the core-points detected by the SNN algorithm ran within the node.
@@ -269,7 +260,7 @@ end
 end
 
 
-@everywhere function local_work(assigned_instances::Array{Int64,1}, inputPath::String, Eps::Int64, MinPts::Int64, k::Int64, pct_sample::Float64;similarity::String="cosine")
+function local_work(assigned_instances::Array{Int64,1}, inputPath::String, Eps::Int64, MinPts::Int64, k::Int64, pct_sample::Float64;similarity::String="cosine")
     #=
      Takes a file path where the data matrix is stored.
     
@@ -277,9 +268,10 @@ end
      This sample is built from the core-points detected by the SNN algorithm ran within the node.
     =#
 
-    N, dim = get_header_from_input_file(inputPath)
+    M, dim = get_header_from_input_file(inputPath)
     #d = Array{Float64,2}(dim, length(assigned_instances));
-    d = get_slice_from_input_file(inputPath, assigned_instances);
+    d = zeros(dim, length(assigned_instances));
+    get_slice_from_input_file(d, inputPath, assigned_instances);
     
     cluster_assignment, core_points, cluster_labels = snn_clustering(d, Eps, MinPts, k, similarity=similarity)
     # Note that the indexes appearing within arrays cluster_assignment and core_points are in range [1:lenght(assigned_instances)]
@@ -297,13 +289,16 @@ end
     corepts_labels = cluster_assignment[core_points];# same length as core_points filled with their cluster labels
     data_weight = zeros(nCp);
     
+    Ns = length(find(x -> x>0, cluster_assignment));#Nr of labeled points
+    
     for i = cluster_labels
-        in_cluster_i = find(x -> x==i, corepts_labels);#relative to vector  core_points
+        cpts_in_cluster_i = find(x -> x==i, corepts_labels);#relative to vector  core_points
+        in_cluster_i = find(x -> x==i, cluster_assignment);#Nr of labeled pts in cluster i
         Nc = length(in_cluster_i);
-        Wc = 1e-10 + ( (1.0 - (Nc/nCp)) / (2.0*Nc) ); # 1e-10 added to avoid problems when only one cluster is found.
-        data_weight[in_cluster_i] = Wc;
+        Wc = 1e-10 + ( (1.0 - (Nc/Ns)) / (2.0*Nc) ); # 1e-10 added to avoid problems when only one cluster is found.
+        data_weight[cpts_in_cluster_i] = Wc;
     end
     
-    sampled_points = sample(collect(1:nCp), WeightVec(data_weight), n_sampled_points , replace=false);
+    sampled_points = sample(collect(1:nCp), WeightVec(data_weight/sum(data_weight)), n_sampled_points , replace=false);
     return assigned_instances[core_points[sampled_points]]
 end

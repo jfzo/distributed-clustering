@@ -5,81 +5,83 @@ if length(workers()) > 1
     rmprocs(workers())
 end
     
-nofworkers = 12
+if length(ARGS) != 4
+    println("julia parallelSNN.jl INPUT_MATRIX_FILE LABEL_FILE NrCores output-logfile")
+    exit()
+end
+
+DATA_PATH = ARGS[1];
+LABEL_PATH = ARGS[2];
+Ncores = parse(ARGS[3]);
+LOGF = ARGS[4];
+
+nofworkers = Ncores
 addprocs(nofworkers)
-results = Dict{String,Array{Int32,1}}()
     
+push!(LOAD_PATH, pwd())
 @everywhere using Distances
 @everywhere using StatsBase
+@everywhere using Clustering
+#@everywhere using WorkerSNN
+#@everywhere using MasterSNN
+#@everywhere using IOSNN
 @everywhere include("WorkerSNN.jl")
 @everywhere include("MasterSNN.jl")
-@everywhere include("IO.jl")
+@everywhere include("IOSNN.jl")
+
 using PyCall
 @pyimport clustering_scores as cs #clustering_scores.py must be in the path.
     
-DATA_PATH = "text-data/AP_out.dat";
-LABEL_PATH = "text-data/AP_out.dat.labels";
+
+
+results = Dict{String,Array{Int32,1}}()
+println("Opening file:",DATA_PATH," with label file:", LABEL_PATH)
 
 real_labels = readdlm(LABEL_PATH, Int32);
-#DATA = convert(SharedArray, DATA);
-N, dims = get_header_from_input_file(DATA_PATH);
-#get_slice_from_input_file(inputPath::String, assigned_instances::Array{Int64,1})
+M, dims = get_header_from_input_file(DATA_PATH);
 
-#N = size(DATA, 2);    
-partition = generate_partition(nofworkers, N) #N instances assigned to nofworkers cores.
+partition = generate_partition(nofworkers, M) #N instances assigned to nofworkers cores.
 
-#worker_Eps, worker_MinPts, worker_k, pct_sample = 8, 25, 30, 0.3
 
-#=
-range_Eps = [20 30 40 50 60 70 80];
-range_MinPts = [20 30 40 50 60 70 80];
-range_K = [30 50 70 90 110];
-=#
 pct_sample = 0.3;
 
-range_Eps = vcat([3, 5, 8, 10], 15:5:50);
-range_MinPts = collect(5:5:30);
-range_K = [50, 70, 90, 110];
+#range_Eps = vcat([3, 5, 8, 10], 15:5:50);
+#range_MinPts = collect(5:5:30);
+#range_K = [30, 50, 70, 90];
+
+range_Eps = [10];
+range_MinPts = [20];
+range_K = [30, 40];
 
 max_dsnn_perf = -1;
 max_dsnn_perf_tuple = []
 
+logh = open(LOGF,"w");
+
+write(logh, @sprintf("%-10s;%-10s;%-10s;%-10s;%-10s;%-10s;%-10s;%-10s;%-10s;%-10s\n", "ARI", "VM", "Eps", "MinPts","K", "num_clusters", "num_core", "num_sampled", "num_Nnoisy", "num_noisy"));
 for Eps=range_Eps
     for MinPts=range_MinPts
         for K=range_K 
-            #@time begin
-                #master_work(results, DATA_PATH, partition, Eps, MinPts, K, pct_sample);
-            #end
-            
             master_work(results, DATA_PATH, partition, Eps, MinPts, K, pct_sample);
-            
             scores = cs.clustering_scores(real_labels[results["sampledpoints"]], results["assignments"], false);
             sampled_pts = length(results["sampledpoints"]);
-
-            # contraint over the nr of sampled points.
-            if sampled_pts >= (0.1*N)
-                if scores["VM"] > max_dsnn_perf ||  (scores["VM"] > (max_dsnn_perf - 0.2) && sampled_pts > max_dsnn_perf_tuple[4])
-                    max_dsnn_perf = scores["VM"];
-                    max_dsnn_perf_tuple = (Eps, MinPts, K, sampled_pts);
-                    println("[Current best VM] Eps:",Eps," MinPts:",MinPts," K:",K," ARI(sk):",
-                    round(scores["ARI"],5)," VM(sk):",round(scores["VM"],5)," #Gen.Samples:",length(results["sampledpoints"]))
-                end
-            end
+            
+            # write configuration and results
+            #ARI, VM, NUMCLUSTERS, NUMCOREPTS, SAMPLEDPts,NUMNONNOISYPTS, NUMNOISYPTS
+            num_clusters = length(results["labels"]);
+            num_core = length(results["corepoints"]);
+            num_sampled = length(results["sampledpoints"]);
+            num_nnoisy = length(find(x->x>0, results["assignments"]));
+            num_noisy = length(find(x->x==0, results["assignments"]));
+            write(logh, @sprintf("%0.4f;%0.4f;%d; %d;%d;%d;%d;%d;%d;%d\n", scores["ARI"], scores["VM"], Eps, MinPts, K, num_clusters, num_core, num_sampled, num_nnoisy, num_noisy));
+            # 
         end
+        flush(logh)
     end
 end
 
+close(logh)
 
-#=
-println("Eps:",worker_Eps," MinPts:",worker_MinPts," K:",worker_k," ARI(sk):",
-                round(scores["ARI"],5)," VM(sk):",round(scores["VM"],5),
-                " #Gen.Samples:",length(results["sampledpoints"]) )
-
-
-writedlm("./20ng.results.samples", results["sampledpoints"], ',');
-writedlm("./20ng.results.corepoints", results["corepoints"], ',');    
-writedlm("./20ng.results.assignments", results["assignments"], ',');    
-=#
 #end
 
 
