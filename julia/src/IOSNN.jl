@@ -1,3 +1,38 @@
+function save_data_as_cluto(D::Array{Float64,2}, path::String; with_labels=false, label_file="")
+    # This function assumes that the array is in column-order (columns contain the examples)
+    # with_labels denotes that the matrix hax the label information in the last row 
+    fout = open(path,"w")
+    d, n = size(D) # Rows contain features and columns the examples.
+    if with_labels
+        d = d - 1
+    end
+    
+    nnz = 0;
+    write(fout, @sprintf("                         \n"));
+    for row = collect(1:n)
+        for col = collect(1:d)
+            if D[col, row] != 0
+                write(fout, @sprintf("%d %0.5f ",col, D[col, row]) );
+                nnz += 1;
+            end
+        end
+        write(fout, "\n");
+    end
+    
+    seekstart(fout)
+    write(fout, @sprintf("%d %d %d",n,d,nnz))
+    
+    close(fout)
+    
+    if with_labels && length(label_file) > 0
+        lblout = open(label_file, "w")
+        for example = collect(1:n)
+            write(lblout, @sprintf("%d\n", D[end, example]) )
+        end
+        close(lblout)
+    end
+end
+
 
 function get_cluto_data(D::Array{Float64,2}, path::String)
     f = open(path)
@@ -12,7 +47,7 @@ function get_cluto_data(D::Array{Float64,2}, path::String)
             feat_ix = parse(Int64, instance[ix]);
             feat_value = parse(Float64, instance[ix+1]);
             
-            println(feat_ix,",",inst_id," --> ",feat_value)
+            #println(feat_ix,",",inst_id," --> ",feat_value)
             D[feat_ix, inst_id] = feat_value;
         end
         inst_id = inst_id + 1;

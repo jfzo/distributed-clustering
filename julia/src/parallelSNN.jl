@@ -45,13 +45,13 @@ partition = generate_partition(nofworkers, M) #N instances assigned to nofworker
 
 pct_sample = 0.3;
 
-#range_Eps = vcat([3, 5, 8, 10], 15:5:50);
+#range_Eps = [5, 8, 10, 15];
 #range_MinPts = collect(5:5:30);
-#range_K = [30, 50, 70, 90];
+#range_K = [20, 30, 40];
 
-range_Eps = [10];
+range_Eps = [8,8,8,8,8,8,8,8,8,8];
 range_MinPts = [20];
-range_K = [30, 40];
+range_K = [30];
 
 max_dsnn_perf = -1;
 max_dsnn_perf_tuple = []
@@ -73,7 +73,7 @@ for Eps=range_Eps
             num_sampled = length(results["sampledpoints"]);
             num_nnoisy = length(find(x->x>0, results["assignments"]));
             num_noisy = length(find(x->x==0, results["assignments"]));
-            write(logh, @sprintf("%0.4f;%0.4f;%d; %d;%d;%d;%d;%d;%d;%d\n", scores["ARI"], scores["VM"], Eps, MinPts, K, num_clusters, num_core, num_sampled, num_nnoisy, num_noisy));
+            write(logh, @sprintf("%0.4f; %0.4f;   %d; %d; %d;    %d; %d; %d; %d; %d\n", scores["ARI"], scores["VM"], Eps, MinPts, K, num_clusters, num_core, num_sampled, num_nnoisy, num_noisy));
             # 
         end
         flush(logh)
