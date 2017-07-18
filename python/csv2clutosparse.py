@@ -25,16 +25,25 @@ outfh = open(outputfile,'w')
 infh = open(inputfile)
 
 outfh.write('                     \n') # 20 characters are reserved for the header.
+D = -1
 N = 0
+nnz=0
 for L in infh:
     txt_flds = L.strip().split(',') # it is assumed that only the last field is an int value.
-    values = map(float, txt_flds[:-1])
-    label  = int(txt_flds[-1])
-    D = len(values)
+    values = map(float, txt_flds)
+    if D == -1:
+        D = len(values)
     N += 1
-    for v in values:
-        
+    for i in range(D):
+        if values[i] == 0:
+            nnz += 1
+            continue
+        outfh.write("%d %f "%(i+1,values[i]))
+    outfh.write("\n")
     
+outfh.seek(0)
+outfh.write("%d %d %d"%(N,D,nnz))
+
 infh.close()
 outfh.close()
 
