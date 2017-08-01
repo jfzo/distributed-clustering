@@ -36,8 +36,8 @@ for L in infh:
     N += 1
     for i in range(D):
         if values[i] == 0:
-            nnz += 1
             continue
+        nnz += 1
         outfh.write("%d %f "%(i+1,values[i]))
     outfh.write("\n")
     

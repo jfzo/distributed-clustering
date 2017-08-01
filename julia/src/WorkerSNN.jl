@@ -1,3 +1,7 @@
+# 14.06.2017
+#module WorkerSNN
+
+
 function euclidean_sim(X::Array{Float64,2}, S::Array{Float64,2})
     # X : Data matrix of dxN
     # S : Data matrix of NxN that will be filled with cosine similarity
@@ -31,7 +35,41 @@ function cosine_sim(X::Array{Float64,2}, S::Array{Float64,2})
     end
 end
 
-function shared_nn_sim(P::Array{Float64,2}, k::Int64, Snn::Array{Float64,2}, S::Array{Float64,2};similarity::String="cosine")
+
+function shared_nn_sim(P::Array{Float64,2}, k::Int64, Snn::Array{Float64,2}, S::Array{Float64,2})
+    #=
+    Computes only the SNN similarity matrix with give parameters k and the similarity matrix (already comptued)
+    Returns nothing, since it modifies the Snn argument already initialized.
+    
+    P : Data matrix of dxN
+    k : Size of the (near)neighborhood
+    Snn is a NxN matrix and it will be filled with SNN similarity (diagonal set to 0)
+    S is a NxN matrix with Cosine/Euclidean similarity
+    =#
+    N= size(P,2);
+    
+    nn = zeros(size(S)) #binary adjacency matrix (1 for n-neighbors)
+    
+    ###
+    #assert((k+1) < N)
+    
+    k = min(k, N-1); #In order to avoid BoundErrors on line 63
+    
+    for i = collect(1:N)
+        nn_ixs_i = sortperm(S[:,i], rev=true)[1:k+1]    
+        nn[nn_ixs_i, i] = 1;
+        nn[i, i] = 0;
+    end
+    
+    tmpS = *(transpose(nn),nn);
+    #return tmpS
+    for i=collect(1:N)
+        Snn[:,i] = tmpS[:,i];
+        Snn[i,i] = 0;
+    end
+end
+
+function compute_similarities(P::Array{Float64,2}, k::Int64, Snn::Array{Float64,2}, S::Array{Float64,2};similarity::String="cosine")
     # P : Data matrix of dxN
     # k : Size of the (near)neighborhood
     # Snn is a NxN matrix and it will be filled with SNN similarity (diagonal set to 0)
@@ -49,63 +87,94 @@ function shared_nn_sim(P::Array{Float64,2}, k::Int64, Snn::Array{Float64,2}, S::
         cosine_sim(P, S);
     end
     
+    # now computes the snn sim matr.
+    shared_nn_sim(P, k, Snn, S)            
+end
+
+
+function compute_similarity(P::Array{Float64,2}, S::Array{Float64,2};similarity::String="cosine")
+    # P : Data matrix of dxN
+    # k : Size of the (near)neighborhood
+    # Snn is a NxN matrix and it will be filled with SNN similarity (diagonal set to 0)
+    # S is a NxN matrix and it will be filled with Cosine/Euclidean similarity
     
-    nn = zeros(size(S)) #binary adjacency matrix (1 for n-neighbors)
+    N= size(P,2);
     
-    ###
-    #assert((k+1) < N)
-    
-    for i = collect(1:N)
-        nn_ixs_i = sortperm(S[:,i], rev=true)[1:k+1]    
-        nn[nn_ixs_i, i] = 1;
-        nn[i, i] = 0;
+    if similarity == "cosine"
+        cosine_sim(P, S);
+    elseif similarity == "euclidean"
+        #println("Using euclidean similarity")
+        euclidean_sim(P, S);
+    else
+        println("Selected similarity function not available. Using cosine function instead!") 
+        cosine_sim(P, S);
     end
-    
-    tmpS = *(transpose(nn),nn);
-    #return tmpS
-    for i=collect(1:N)
-        Snn[:,i] = tmpS[:,i];
-        Snn[i,i] = 0;
-    end
-        
 end
 
 
 
 
-function tuned_snn_clustering(D::Array{Float64,2} ;similarity::String="cosine")
+function tuned_snn_clustering(D::Array{Float64,2} ;k_range = [40, 50], similarity::String="cosine")
     # D : Data matrix of dxN
     max_sil = -1;
     max_sil_params = ();
-    k_range = collect(10:5:50);
-    Eps_range = collect(1:5:30);
-    MinPts_range = collect(1:5:30)
-    
+
+    #println("Using Dbscan (Julia)")
+    num_points = size(D,2);
+    S = zeros(Float64, num_points, num_points);
+
+    compute_similarity(D, S, similarity=similarity);
+    Snn = zeros(Float64, num_points, num_points);
     
     for k = k_range
-        # for a value for k ...
-        #shared_nn_sim(D, k, Snn, S, similarity=similarity);
-        for Eps = Eps_range
+    
+        Eps_range = collect(10:10.0:k)
+        MinPts_range = collect(10:10:k)
+        shared_nn_sim(D, k, Snn, S)
+        #compute_similarities(D, k, Snn, S, similarity=similarity);
+        
+        for epsilon = Eps_range
             for MinPts = MinPts_range
-                #println("Eps:",Eps," MinPts:", MinPts," k:", k)
-                cluster_assignment, core_points, cluster_labels, noise_found, S = snn_clustering(D, Eps, MinPts, k, similarity=similarity)
-                if length(core_points) > 0
-                    sil_val = mean(silhouettes(cluster_assignment, counts(cluster_assignment,maximum(cluster_assignment)), k-S));
-                    
+                
+                d_point_cluster_id = Dict{Int64, Int64}();
+                cluster_assignment = fill(SNNDBSCAN.UNCLASSIFIED, num_points);
+                corepoints = Int64[];
+                for i=collect(1:num_points)
+                    d_point_cluster_id[i] = SNNDBSCAN.UNCLASSIFIED;
+                end
+
+                SNNDBSCAN.dbscan(num_points, epsilon, MinPts, Snn, d_point_cluster_id, corepoints)
+                for i=collect(1:num_points)
+                    cluster_assignment[i] = d_point_cluster_id[i]
+                end
+                
+                ##
+                #=
+                result = dbscan(k-Snn, k-epsilon, MinPts);
+                cluster_assignment = result.assignments;
+                corepoints = result.seeds;
+                =#
+                
+                assigned = find(x-> x>0, cluster_assignment);
+                if length(corepoints) > 0 && length(assigned) >= num_points*0.4
+                    sil_val = mean(Clustering.silhouettes(cluster_assignment[assigned], Clustering.counts(cluster_assignment[assigned],maximum(cluster_assignment[assigned])), k-Snn[assigned,assigned]));
                     if sil_val > max_sil
                         max_sil = sil_val
-                        max_sil_params = (cluster_assignment, core_points, cluster_labels, noise_found, Eps, MinPts, k, sil_val)
+                        clusters = unique(cluster_assignment[assigned]);
+                        max_sil_params = (cluster_assignment, corepoints, epsilon, MinPts, k, sil_val, assigned, clusters)
                     end
                 end
              end #end of MinPts iter.
         end #end of Eps iter. 
     end
-
-    return Dict("cluster_assignment" => max_sil_params[1], "core_points" => max_sil_params[2], "cluster_labels" => max_sil_params[3], "noise_found" => max_sil_params[4], "Eps"=>max_sil_params[5], "MinPts"=>max_sil_params[6], "k"=>max_sil_params[7], "silhouette"=>max_sil_params[8])
+ 
+    if length(max_sil_params) == 0
+        println("Parameters: epsilon[",Eps_range,"] MinPts[",MinPts_range,"] K[",k_range,"]");
+    end
+    #assert(length(max_sil_params) > 0) # otherwise, no valid clustering was achieved!
+    
+    return Dict("cluster_assignment" => max_sil_params[1], "corepoints" => max_sil_params[2], "Eps"=>max_sil_params[3], "MinPts"=>max_sil_params[4], "k"=>max_sil_params[5], "silhouette"=>max_sil_params[6],"assigned_points"=>max_sil_params[7], "clusters"=>max_sil_params[8])
 end
-
-
-
 
 function snn_clustering(D::Array{Float64,2}, Eps::Int64, MinPts::Int64, k::Int64;similarity::String="cosine")
     # D : Data matrix of dxN
@@ -122,7 +191,7 @@ function snn_clustering(D::Array{Float64,2}, Eps::Int64, MinPts::Int64, k::Int64
     Snn = Array{Float64}(N,N);    
     S = Array{Float64}(N,N);
     
-    shared_nn_sim(D, k, Snn, S, similarity=similarity);
+    compute_similarities(D, k, Snn, S, similarity=similarity);
     
     #compute density
     for i = collect(1:N)
@@ -215,7 +284,7 @@ end
 
 
 
-function local_work(assigned_instances::Array{Int64,1}, inputPath::String, Eps::Int64, MinPts::Int64, k::Int64, pct_sample::Float64;similarity::String="cosine")
+function local_work(assigned_instances::Array{Int64,1}, inputPath::String, pct_sample::Float64;similarity::String="cosine", Eps_range = collect(5.0:5.0:50.0), MinPts_range = collect(20:10:50),k_range = [40, 50])
     #=
      Takes a file path where the data matrix is stored.
     
@@ -234,54 +303,53 @@ function local_work(assigned_instances::Array{Int64,1}, inputPath::String, Eps::
     # Coarse-grained parameter search guided by silhouette.
     # silhouettes(convert(Vector{Int64}, cluster_assignment_m), counts(cluster_assignment_m), 1-Snn)
     #cluster_assignment, core_points, cluster_labels = snn_clustering(d, Eps, MinPts, k, similarity=similarity)
-    cluster_assignment, core_points, cluster_labels, (sil_value, t_Eps, t_MinPts, t_k) = tuned_snn_clustering(d, similarity=similarity)
+    
+    #P =  tuned_snn_clustering(d, Eps_range=Eps_range, MinPts_range=MinPts_range, k_range=k_range, similarity=similarity);
+    P =  tuned_snn_clustering(d, k_range=k_range, similarity=similarity);
+    #cluster_assignment, core_points, cluster_labels, (sil_value, t_Eps, t_MinPts, t_k)
+    
+    corepoints = P["corepoints"];
+    
+    noncorepoints = find(x-> ~(x in P["corepoints"]) && P["cluster_assignment"][x] > 0, collect(1:length(assigned_instances))); #points not contained in corepoints and also whose label is not Noise.
+    
+    cluster_assignment = P["cluster_assignment"];#all assignments, noise included
+    
+    clusters = unique(P["cluster_assignment"][P["assigned_points"]]);#noise not considered
+    
+    noisy_pts = find(x-> ~(x in P["assigned_points"]),collect(1:length(assigned_instances)));
     
     
-    # Note that the indexes appearing within arrays cluster_assignment and core_points are in range [1:lenght(assigned_instances)]
-    # ... thus in order to obtain the index relative to the array A (whole data), the indirection to apply is 
-    # ... assigned_instances[i]
-    ###
-
-    nCp = length(core_points)
-    n_sampled_points = round(Int, pct_sample*nCp);
+    result = Dict{String, Any}();
+    result["Eps"] = P["Eps"];
+    result["MinPts"] = P["MinPts"];
+    result["k"]=P["k"];
+    result["clusters"] = clusters
+    result["noise_points"] = assigned_instances[noisy_pts]
+    result["corepoints"] = assigned_instances[corepoints]
+    result["cluster_assignment"] = cluster_assignment #one for each 'assigned_instances' including noise
     
-    if length(cluster_labels) == 0
-        return []
+    sample_pts = Int64[]
+    for C in clusters
+        # find non-core points in the cluster
+        noncp_in_cluster = noncorepoints[find(x->cluster_assignment[x]==C, noncorepoints)];
+        cp_in_cluster = corepoints[find(x->cluster_assignment[x]==C, corepoints)];
+       
+        
+        # Sample MinPts points from noncp_in_cluster
+        sample_C = sample(noncp_in_cluster, ceil(Int64, length(noncp_in_cluster)*pct_sample) , replace=false);
+        sample_pts = vcat(sample_pts, sample_C);
     end
     
-    corepts_labels = cluster_assignment[core_points];# same length as core_points filled with their cluster labels
-    data_weight = zeros(nCp);
-    
-    Ns = length(find(x -> x>0, cluster_assignment));#Nr of labeled points
-    
-    for i = cluster_labels
-        cpts_in_cluster_i = find(x -> x==i, corepts_labels);#relative to vector  core_points
-        in_cluster_i = find(x -> x==i, cluster_assignment);#Nr of labeled pts in cluster i
-        Nc = length(in_cluster_i);
-        #Nc = length(cpts_in_cluster_i);
-        #Wc = 1e-10 + ( (1.0 - (Nc/Ns)) / (2.0*Nc) ); # 1e-10 added to avoid problems when only one cluster is found.
-        #Wc = 1e-20 + (Ns/Nc); # 1e-10 added to avoid problems when only one cluster is found.
-        Wc = Nc/Ns;
-        data_weight[cpts_in_cluster_i] = Wc;
-    end
-    #data_weight = adjust_weight(data_weight/sum(data_weight), gm=0.4, r=4);
-    #data_weight = adjust_weight(exp(data_weight)/sum(exp(data_weight)), gm=0.4, r=3);
-    data_weight = adjust_weight(data_weight);
-    data_weight =  exp(data_weight)/sum(exp(data_weight));
-    #data_weight = data_weight/sum(data_weight);
-    
-    sampled_points = sample(collect(1:nCp), WeightVec(data_weight), n_sampled_points , replace=false);
-    return assigned_instances[core_points[sampled_points]]
+    #sample_pts = vcat(corepoints, sample_pts);#sampled_pts continas both points
+    result["sampled_points"] = assigned_instances[sample_pts];
+    result["corepoints"] = assigned_instances[corepoints];
+    #assigned_instances[corepoints], 
+    return result    
 end
 
 
-#=
-********************************
-        New version
-********************************
-=#
 
-function local_work_final(assigned_instances::Array{Int64,1}, corepoints::Array{Int64,1}, corepoint_labels::Array{Int64,1}, inputPath::String;KNN::Int64=5, similarity::String="cosine")
+function local_work_final(assigned_instances::Array{Int64,1}, corepoints::Array{Int64,1}, corepoint_labels::Array{Int64,1}, inputPath::String;k::Int64 = 50, KNN::Int64=5, similarity::String="cosine")
     #=
      Takes a file path where the data matrix is stored.
     
@@ -289,17 +357,26 @@ function local_work_final(assigned_instances::Array{Int64,1}, corepoints::Array{
      This sample is built from the core-points detected by the SNN algorithm ran within the node.
     =#
 
+    already_assigned_corepoints = Int64[];
+    already_assigned_corepoint_labels = Int64[];
     
     L = Int64[];
     append!(L, assigned_instances);
     for i=collect(1:length(corepoints))
-        if ~ (corepoints[i] in assigned_instances)
-            push!(L, corepoints[i])
+        # if corepoints was already assigned to this worker, mark it along with its label
+        if corepoints[i] in assigned_instances
+            corepoint_index_in_assigned_instances = find(x->x==corepoints[i], assigned_instances)
+            push!(already_assigned_corepoints, corepoint_index_in_assigned_instances[1])
+            push!(already_assigned_corepoint_labels, corepoint_labels[i]) 
+        else #otherwise appendit to the local (worker) data so it is included in the similarity computation.
+            push!(L, corepoints[i])            
         end
     end
     sort!(L)
     
-    instance_map = Dict{Int64, Int64}(zip(L, collect(1:length(L)) )) # maps each instance-id to the corresponding data column id
+    # j is an assigned instance or a core point, then 
+    # instance_map[j] -> Denotes the column number of the local Similarity matrix.
+    data_to_local = Dict{Int64, Int64}(zip(L, collect(1:length(L)) )) # maps each instance-id to the corresponding data column id
     
     N  = length(L);
     
@@ -311,28 +388,44 @@ function local_work_final(assigned_instances::Array{Int64,1}, corepoints::Array{
     Snn = Array{Float64}(N,N);    
     S = Array{Float64}(N,N);
     
-    shared_nn_sim(D, k, Snn, S, similarity=similarity);
+    compute_similarities(D, k, Snn, S, similarity=similarity);
     
-    # get the core point indexes in the similarity matrix.
-    corepoint_ixs = map(x->instance_map[x], corepoints);
+    # Identify the mapping between local data indexes and overall data indexes
+    # corepoint indexes in the similarity matrix.
+    corepoint_ixs = map(x->data_to_local[x], corepoints);
+    # borderpoint indexes in the similarity matrix.
+    assigned_without_corepoints = find(x->~(x in corepoints), assigned_instances);# positions in assigned_instances
+    border_instances = assigned_instances[assigned_without_corepoints];
+    borderpoint_ixs = map(x->data_to_local[x], border_instances);
     
+    nst_cp_label = fill(-10, length(borderpoint_ixs));
+    nst_cp_dist = fill(Inf,length(borderpoint_ixs)); #initialization with maximum distance
+    
+    # for each corepoint, get the shortest path to every border point.
+    for cp_i=collect(1:length(corepoint_ixs))
+        # get corepoint label
+        curr_cp_label = corepoint_labels[cp_i];
+        # get shortest distance to every point
+        res = SNNGraphUtil.shortest_path(k-Snn, corepoint_ixs[cp_i]); #computes distance to every point in 1:N
+        
+        #check only the borderpoint_ixs
+        for i=collect(1:length(borderpoint_ixs))
+            #if previous shortest distance is larger than current, update the label and min distance             
+            if nst_cp_dist[i] > res["dist"][borderpoint_ixs[i]]
+                nst_cp_dist[i] = res["dist"][borderpoint_ixs[i]]
+                nst_cp_label[i] = curr_cp_label
+            end
+        end
+    end
+    
+    ####
+    #assert(length(already_assigned_corepoints)+length(border_instances) == length(assigned_instances))
     
     assigned_instances_labels = zeros(size(assigned_instances))
-    # for each non-corepoint, find its similarity to the corepoints and take the top K
-    for i=collect(1:length(assigned_instances) )
-        if assigned_instances[i] in corepoints
-            corepoint_ix = find(x->x==assigned_instances[i], corepoints)[1];
-            assigned_instances_labels[i] = corepoint_labels[corepoint_ix]
-            continue
-        end
-        # Snn[instance_map[i],:] contains the similarity with the remaining points.
-        instance_ix = instance_map[assigned_instances[i]]; # index in the similarity matrix
-        # Get the label majority from the K nearest corepoints. 
-        core_sims = Snn[instance_ix, corepoint_ixs];
-        knncorepoints_rank = sortperm(core_sims, rev=true)[1:KNN]; # sort from max to min and get the top KNN
-        # Each item in 'knncorepoints_rank' denotes the similarity of the correponding item index in the corepoints and corepoint_labels arrays.
-        voter_labels = corepoint_labels[knncorepoints_rank];
-        assigned_instances_labels[i] = span(voter_labels)[sortperm(counts(voter_labels), rev=true)[1]] #returns the most common label.
-    end
+    # Assign first the corepoints appearing IN assigned_instances
+    assigned_instances_labels[already_assigned_corepoints] = already_assigned_corepoint_labels;
+    # Use border_instances to assign the remaining ones
+    assigned_instances_labels[assigned_without_corepoints] = nst_cp_label;
     return assigned_instances_labels
 end
+#end
