@@ -11,14 +11,16 @@ import argparse
 parser = argparse.ArgumentParser()
 parser.add_argument("-o","--outfile", type=str, help="Path to the output file where the sparse matrix will be stored")
 parser.add_argument("-i","--inputfile", type=str, help="Path to the input file in CSV format where the dense vectors are stored")
+parser.add_argument("-s","--separator", type=str, help="Separator char to use for spliting the rows (default set to ',')", default=',')
 args = parser.parse_args()
 
 if not args.inputfile or not args.outfile:
-    print "Usage: ./csv2clutosparse -i <path to the input CSV file> -o <path to output file>"
+    print "Usage: ./csv2clutosparse -i <path to the input CSV file> -o <path to output file> [-s SEPARATOR_CHAR]"
     sys.exit()
 
 outputfile = args.outfile
 inputfile = args.inputfile
+sep = args.separator
 
 
 outfh = open(outputfile,'w')
@@ -29,7 +31,7 @@ D = -1
 N = 0
 nnz=0
 for L in infh:
-    txt_flds = L.strip().split(',') # it is assumed that only the last field is an int value.
+    txt_flds = L.strip().split(sep) # it is assumed that only the last field is an int value.
     values = map(float, txt_flds)
     if D == -1:
         D = len(values)
