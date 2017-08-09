@@ -32,7 +32,20 @@ function exec_cluto_rb(vectors_file::String, nclusters::Int64; CLUTOV_CMD::Strin
 end
 
 #function master_work(results::Dict{String, Any}, inputPath::String, partition::Array{Int64,1}, pct_sample::Float64;similarity::String="cosine", K::Int64=50, KNN::Int64=3,Eps_range = collect(5.0:5.0:50.0), MinPts_range = collect(20:10:50),k_range = [40, 50], snn_cut_point::Int64=5)
-function master_work(results::Dict{String, Any}, inputPath::String, partition::Array{Int64,1}, pct_sample::Float64;similarity::String="cosine", K::Int64=50, KNN::Int64=3,snn_cut_point::Int64=5)
+#function master_work(results::Dict{String, Any}, inputPath::String, partition::Array{Int64,1}, pct_sample::Float64;similarity::String="cosine", K::Int64=50, KNN::Int64=3,snn_cut_point::Int64=5)
+
+function master_work(results::Dict{String, Any}, 
+    inputPath::String, 
+    partition::Array{Int64,1}, 
+    pct_sample::Float64,
+    k_range::Array{Int64,1}, 
+    worker_eps_start_val::Float64,
+    worker_eps_step_val::Float64,
+    worker_eps_end_val::Float64,    
+    worker_minpts_start_val::Int64,
+    worker_minpts_step_val::Int64,
+    worker_minpts_end_val::Float64;
+    similarity::String="cosine", K::Int64=50, KNN::Int64=3,snn_cut_point::Int64=5)    
     
     N = length(partition);
     Nnodes = length(unique(partition));
@@ -50,7 +63,14 @@ function master_work(results::Dict{String, Any}, inputPath::String, partition::A
             pid,
             worker_assignment,                
             inputPath,
-            pct_sample,
+            pct_sample,            
+            k_range, 
+            worker_eps_start_val,
+            worker_eps_step_val,
+            worker_eps_end_val,
+            worker_minpts_start_val,
+            worker_minpts_step_val,
+            worker_minpts_end_val,
             similarity=similarity);
         end
     end

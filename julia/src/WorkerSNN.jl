@@ -185,8 +185,19 @@ end
 
 
 
-function tuned_snn_clustering(D::Array{Float64,2} ;k_range = [40, 60, 80, 100, 150], similarity::String="cosine")
+function tuned_snn_clustering(D::Array{Float64,2},
+    eps_start_val::Float64,
+    eps_step_val::Float64,
+    eps_end_val::Float64,    
+    minpts_start_val::Int64,
+    minpts_step_val::Int64,
+    minpts_end_val::Float64,
+    k_range::Array{Int64,1},
+    similarity::String)
+    
     # D : Data matrix of dxN
+    #'Inf' in the end values means that the current k value is employed.
+    
     max_sil = -1;
     max_sil_params = ([], [], -1.0, -1, -1, -1, [], []);
 
@@ -199,11 +210,14 @@ function tuned_snn_clustering(D::Array{Float64,2} ;k_range = [40, 60, 80, 100, 1
     
     for k = k_range
     
-        Eps_range = collect(10:10.0:k)
-        MinPts_range = collect(10:10:k)
+        Eps_range = collect(eps_start_val:eps_step_val:min(eps_end_val, k) )
+        MinPts_range = collect(minpts_start_val:minpts_step_val:convert(Int64, min(minpts_end_val, k)))
+        
         shared_nn_sim(D, k, Snn, S)
+        
         #compute_similarities(D, k, Snn, S, similarity=similarity);
         Dnn = k-Snn;
+        
         for epsilon = Eps_range
             for MinPts = MinPts_range
                 
@@ -251,98 +265,6 @@ function tuned_snn_clustering(D::Array{Float64,2} ;k_range = [40, 60, 80, 100, 1
     return Dict("cluster_assignment" => max_sil_params[1], "corepoints" => max_sil_params[2], "Eps"=>max_sil_params[3], "MinPts"=>max_sil_params[4], "k"=>max_sil_params[5], "silhouette"=>max_sil_params[6],"assigned_points"=>max_sil_params[7], "clusters"=>max_sil_params[8])
 end
 
-function snn_clustering(D::Array{Float64,2}, Eps::Int64, MinPts::Int64, k::Int64;similarity::String="cosine")
-    # D : Data matrix of dxN
-    # Initially all points have a cluster id equal to 0
-    # Non noise points will be marked with labels from 1 to max_clusters - 1
-    # Noise points will be marked with cluster id equal to the maximum cluster label
-    # Returns cluster_assignment, core-point-instances-ids, cluster_labels, noise-detected, S
-    N = size(D,2)
-    
-    density = zeros(Int64, N);
-    cluster_assignment = zeros(Int64, N);
-    cluster_labels = Int64[]
-    
-    Snn = Array{Float64}(N,N);    
-    S = Array{Float64}(N,N);
-    
-    compute_similarities(D, k, Snn, S, similarity=similarity);
-    
-    #compute density
-    for i = collect(1:N)
-        dense_ng = find(x -> x>=Eps, Snn[:,i]);
-        density[i] = length(dense_ng);
-    end
-    
-    #identify core-points
-    cpoints = find(x -> x>=MinPts, density);
-    #check a non-empty 'cpoints'
-    nCp = length(cpoints);
-
-    if nCp == 0
-        #println("Warning! Number of core-points equals 0.")
-        return (cluster_assignment, cpoints, cluster_labels, false, S)
-    end
-    
-    clst_id = 0;
-    for i = collect(1:nCp) 
-        # assign a label to each unlabeled core-points
-        if cluster_assignment[cpoints[i]] == 0
-            clst_id = clst_id + 1;
-            push!(cluster_labels, clst_id);
-            cluster_assignment[cpoints[i]] = clst_id;
-        end
-
-        # Find non labeled core points having SNN-sim > Eps
-        # with current core-point and assign the same label.
-        # Note: Unlabeled core-points are cpoints[unlabeled_cpoints_ixs]            
-      
-        #Code based on a bucle (copied from the Python version)
-        for j = collect((i+1):nCp) 
-            if Snn[cpoints[j], cpoints[i]] >= Eps
-                cluster_assignment[cpoints[j]] = cluster_assignment[cpoints[i]];
-            end
-        end           
-    end
-    
-    # Check that all core-points were assigned to a cluster (itself or to the closest)
-    #assert(length(cpoints) == length(find(x -> x>0, cluster_assignment[cpoints])))
-
-    # Mark noise points
-    # Assign all non-noise, non-core points to clusters
-    noncpoints = find(x -> x < MinPts, density);
-    num_noncp = length(noncpoints);
-    
-    noise_label_marked = false
-    noise_label = length(cluster_labels) + 1;
-    for i=noncpoints
-        # find nearest core-point
-        nst_cp = cpoints[1];
-        for cp=cpoints
-            if Snn[cp, i] > Snn[nst_cp, i]
-                nst_cp = cp;
-            end
-        end
-        
-        if Snn[nst_cp, i] < Eps
-            #noise
-            cluster_assignment[i] = noise_label
-            if !noise_label_marked
-                push!(cluster_labels, noise_label);
-                noise_label_marked = true;
-            end
-        else
-            cluster_assignment[i] = cluster_assignment[nst_cp] 
-        end
-        ##
-        
-    end
-
-    # Check that all points were assigned to a cluster (noise included)
-    assert(length(cluster_assignment) == length(find(x -> x > 0, cluster_assignment)) )
-
-    return (cluster_assignment, cpoints, cluster_labels, noise_label_marked, Snn)
-end
 
 
 
@@ -360,7 +282,18 @@ end
 
 
 #function local_work(assigned_instances::Array{Int64,1}, inputPath::String, pct_sample::Float64;similarity::String="cosine", Eps_range = collect(5.0:5.0:50.0), MinPts_range = collect(20:10:50),k_range = [40, 50])
-function local_work(assigned_instances::Array{Int64,1}, inputPath::String, pct_sample::Float64;similarity::String="cosine")
+#function local_work(assigned_instances::Array{Int64,1}, inputPath::String, pct_sample::Float64;similarity::String="cosine")
+function local_work(assigned_instances::Array{Int64,1}, 
+    inputPath::String, 
+    pct_sample::Float64,
+    k_range::Array{Int64,1}, 
+    worker_eps_start_val::Float64,
+    worker_eps_step_val::Float64,
+    worker_eps_end_val::Float64,    
+    worker_minpts_start_val::Int64,
+    worker_minpts_step_val::Int64,
+    worker_minpts_end_val::Float64;
+    similarity::String="cosine")
     #=
      Takes a file path where the data matrix is stored.
     
@@ -381,7 +314,14 @@ function local_work(assigned_instances::Array{Int64,1}, inputPath::String, pct_s
     #cluster_assignment, core_points, cluster_labels = snn_clustering(d, Eps, MinPts, k, similarity=similarity)
     
     #P =  tuned_snn_clustering(d, Eps_range=Eps_range, MinPts_range=MinPts_range, k_range=k_range, similarity=similarity);
-    P =  tuned_snn_clustering(d,similarity=similarity);
+    P =  tuned_snn_clustering(d,  
+    worker_eps_start_val,
+    worker_eps_step_val,
+    worker_eps_end_val,
+    worker_minpts_start_val,
+    worker_minpts_step_val,
+    worker_minpts_end_val,
+    k_range, similarity);
     #cluster_assignment, core_points, cluster_labels, (sil_value, t_Eps, t_MinPts, t_k)
     
     corepoints = P["corepoints"];
