@@ -1,6 +1,77 @@
-# 14.06.2017
+# 03.08.2017
 #module WorkerSNN
+function silhouette(D::Array{Float64,2}, labels::Array{Int64,1})
+    #D: Distance matrix
+    #labels: vector with assignments
+    #
+    # The best value is 1 and the worst value is -1. 
+    # Values near 0 indicate overlapping clusters. 
+    # Negative values generally indicate that a sample has been assigned to the wrong cluster
+    #
+    n = size(D)[1]
+    sil_sum = 0.0
+    for i=collect(1:n)
+        sil_sum += silhouette_i(i, D, labels)
+    end
+    return sil_sum / n
+end
+    
+function silhouette_i(i::Int64, D::Array{Float64,2}, labels::Array{Int64,1})    
+    #i: current point to examine
+    #D: Distance matrix
+    #labels: vector with assignments
+    #
+    # Compute the Silhouette Coefficient for a specific sample.
+    #
+    A = labels[i]
+    points_in_A = find(x->x==A, labels)
+    a_i = (sum(D[i, points_in_A])-D[i,i])/(size(points_in_A)[1] - 1)#It is assumed that D[i,i]:=0
+    b_i = Inf
+    for c=unique(labels) #computing min ave.dist among i and items in other clusters.
+        if c == A
+            continue
+        end
+        points_in_c = find(x->x==c, labels)
+        ave_dist_i = sum(D[i, points_in_c])/size(points_in_c)[1]
+        if ave_dist_i < b_i
+            b_i = ave_dist_i
+        end
+    end
+    return (b_i - a_i)/(max(b_i, a_i))
+end
 
+function cvnn_index(D::Array{Float64,2}, labels::Array{Int64,1}; sep_k::Int64=10)
+    #D: Distance matrix
+    #labels: Array with one class label for each point in D
+    #sep_k: Size of the neighborhoods
+    sep_score = 0.0
+    com_score = 0.0
+    for c=unique(labels)
+        points_in_c = find(x->x==c, labels)
+        n_c = size(points_in_c)[1]
+
+        sum_c = 0.0
+        for j=points_in_c
+            knn_j = sortperm(D[:,j])[2:(sep_k + 1)] #k-nst-n (ascending order in dist)
+            q_j = size(find(x->x!=c, labels[knn_j]))[1] #nst-n in different group
+            sum_c += q_j/sep_k
+        end
+        sep_c = (1.0/n_c)*sum_c #average weight for objs in the current cluster.
+        if sep_c > sep_score
+            sep_score = sep_c
+        end
+        ##
+        sum_c = 0.0
+        sims_c = D[points_in_c,points_in_c]
+        for i=collect(1:(n_c-1))
+            for j=collect((i+1):n_c)
+                sum_c += D[i,j]
+            end
+        end
+        com_score += (2.0/(n_c*(n_c-1)))*sum_c        
+    end
+    return (com_score + sep_score)
+end
 
 function euclidean_sim(X::Array{Float64,2}, S::Array{Float64,2})
     # X : Data matrix of dxN
@@ -114,10 +185,10 @@ end
 
 
 
-function tuned_snn_clustering(D::Array{Float64,2} ;k_range = [40, 50], similarity::String="cosine")
+function tuned_snn_clustering(D::Array{Float64,2} ;k_range = [40, 60, 80, 100, 150], similarity::String="cosine")
     # D : Data matrix of dxN
     max_sil = -1;
-    max_sil_params = ();
+    max_sil_params = ([], [], -1.0, -1, -1, -1, [], []);
 
     #println("Using Dbscan (Julia)")
     num_points = size(D,2);
@@ -132,7 +203,7 @@ function tuned_snn_clustering(D::Array{Float64,2} ;k_range = [40, 50], similarit
         MinPts_range = collect(10:10:k)
         shared_nn_sim(D, k, Snn, S)
         #compute_similarities(D, k, Snn, S, similarity=similarity);
-        
+        Dnn = k-Snn;
         for epsilon = Eps_range
             for MinPts = MinPts_range
                 
@@ -147,29 +218,33 @@ function tuned_snn_clustering(D::Array{Float64,2} ;k_range = [40, 50], similarit
                 for i=collect(1:num_points)
                     cluster_assignment[i] = d_point_cluster_id[i]
                 end
-                
-                ##
-                #=
-                result = dbscan(k-Snn, k-epsilon, MinPts);
-                cluster_assignment = result.assignments;
-                corepoints = result.seeds;
-                =#
-                
                 assigned = find(x-> x>0, cluster_assignment);
+                
+               
                 if length(corepoints) > 0 && length(assigned) >= num_points*0.4
-                    sil_val = mean(Clustering.silhouettes(cluster_assignment[assigned], Clustering.counts(cluster_assignment[assigned],maximum(cluster_assignment[assigned])), k-Snn[assigned,assigned]));
+                    #sil_val = cvnn_index(k-Snn[assigned,assigned], cluster_assignment[assigned]);
+                    #if sil_val < max_sil
+                    #    max_sil = sil_val
+                    #    clusters = unique(cluster_assignment[assigned]);
+                    #    max_sil_params = (cluster_assignment, corepoints, epsilon, MinPts, k, sil_val, assigned, clusters)
+                    #end
+
+                    sil_val = silhouette(Dnn[assigned,assigned], cluster_assignment[assigned]);
+                    #sil_val = mean(Clustering.silhouettes(cluster_assignment[assigned], Clustering.counts(cluster_assignment[assigned],maximum(cluster_assignment[assigned])), k-Snn[assigned,assigned]));
                     if sil_val > max_sil
                         max_sil = sil_val
                         clusters = unique(cluster_assignment[assigned]);
                         max_sil_params = (cluster_assignment, corepoints, epsilon, MinPts, k, sil_val, assigned, clusters)
                     end
+                    
                 end
+                
              end #end of MinPts iter.
         end #end of Eps iter. 
     end
  
-    if length(max_sil_params) == 0
-        println("Parameters: epsilon[",Eps_range,"] MinPts[",MinPts_range,"] K[",k_range,"]");
+    if max_sil == -1
+        println("No parameter setting found.");
     end
     #assert(length(max_sil_params) > 0) # otherwise, no valid clustering was achieved!
     
@@ -284,7 +359,8 @@ end
 
 
 
-function local_work(assigned_instances::Array{Int64,1}, inputPath::String, pct_sample::Float64;similarity::String="cosine", Eps_range = collect(5.0:5.0:50.0), MinPts_range = collect(20:10:50),k_range = [40, 50])
+#function local_work(assigned_instances::Array{Int64,1}, inputPath::String, pct_sample::Float64;similarity::String="cosine", Eps_range = collect(5.0:5.0:50.0), MinPts_range = collect(20:10:50),k_range = [40, 50])
+function local_work(assigned_instances::Array{Int64,1}, inputPath::String, pct_sample::Float64;similarity::String="cosine")
     #=
      Takes a file path where the data matrix is stored.
     
@@ -305,7 +381,7 @@ function local_work(assigned_instances::Array{Int64,1}, inputPath::String, pct_s
     #cluster_assignment, core_points, cluster_labels = snn_clustering(d, Eps, MinPts, k, similarity=similarity)
     
     #P =  tuned_snn_clustering(d, Eps_range=Eps_range, MinPts_range=MinPts_range, k_range=k_range, similarity=similarity);
-    P =  tuned_snn_clustering(d, k_range=k_range, similarity=similarity);
+    P =  tuned_snn_clustering(d,similarity=similarity);
     #cluster_assignment, core_points, cluster_labels, (sil_value, t_Eps, t_MinPts, t_k)
     
     corepoints = P["corepoints"];

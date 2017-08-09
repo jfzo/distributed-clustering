@@ -62,7 +62,7 @@ function snn_grid_evaluation(DATA_PATH::String, LABEL_PATH::String)
 
 
     k_range = collect(30:10:200)
-    max_perf = -1;
+    max_perf = Inf;
     max_perf_tuple = []
 
     for K=k_range
@@ -86,19 +86,30 @@ function snn_grid_evaluation(DATA_PATH::String, LABEL_PATH::String)
                 for i=collect(1:num_points)
                     cluster_assignment[i] = d_point_cluster_id[i]
                 end 
-
+                
                 scores = cs.clustering_scores(real_labels, cluster_assignment, false);
+                
+                cvnn_score = cvnn_index(K-Snn, cluster_assignment);
+                #println("CVNN computed:",cvnn_score)
+                if cvnn_score < max_perf
+                    max_perf = cvnn_score;
+                    max_perf_tuple = (Eps, MinPts, K, elapsed_t, scores["VM"], scores["ARI"]);
+                    println("[Current best model] Eps:",Eps," MinPts:",MinPts," K:",K," CVNN:",cvnn_score," [ARI:",scores["ARI"]," VM:",scores["VM"],"]")
+                end
+                
+                #=                
                 if scores["VM"] > max_perf
                     max_perf = scores["VM"];
                     max_perf_tuple = (Eps, MinPts, K, elapsed_t);
                     #println("[Current best ARI] Eps:",Eps," MinPts:",MinPts," K:",K," ARI:",scores["ARI"]," VM:",scores["VM"])
                 end
-
+                =#
             end
         end
     end
+    return Dict{String, Real}("elapsed"=>max_perf_tuple[4], "epsilon" => max_perf_tuple[1], "minpts"=>max_perf_tuple[2], "K" => max_perf_tuple[3], "CVNN"=>max_perf, "VM" => max_perf_tuple[5], "ARI"=>max_perf_tuple[6])
     
-    return Dict{String, Real}("elapsed"=>max_perf_tuple[4], "epsilon" => max_perf_tuple[1], "minpts"=>max_perf_tuple[2], "K" => max_perf_tuple[3], "VM" => max_perf)
+    #return Dict{String, Real}("elapsed"=>max_perf_tuple[4], "epsilon" => max_perf_tuple[1], "minpts"=>max_perf_tuple[2], "K" => max_perf_tuple[3], "VM" => max_perf)
     #return (max_perf, max_perf_tuple[1],max_perf_tuple[2],max_perf_tuple[3],max_perf_tuple[4])
 
 end
@@ -127,7 +138,7 @@ if ~isinteractive()
     LABEL_PATH=parsed_args["labelfile"]
 
     perf = snn_grid_evaluation(DATA_PATH, LABEL_PATH)
-    println( @sprintf("\nBest VM score:%0.4f attained with parameters epsilon:%0.0f minpts:%d K:%d Time:%0.4f", perf["VM"], perf["epsilon"],perf["minpts"],perf["K"],perf["elapsed"]) )
+    println( @sprintf("\nBest CVNN score:%0.4f (VM: %0.4f) attained with parameters epsilon:%0.0f minpts:%d K:%d Time:%0.4f", perf["CVNN"],perf["VM"], perf["epsilon"],perf["minpts"],perf["K"],perf["elapsed"]) )
 
 end   
 

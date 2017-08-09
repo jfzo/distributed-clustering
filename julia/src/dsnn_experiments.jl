@@ -26,6 +26,7 @@ parsed_args = parse_commandline()
 #LABEL_PATH = "./20newsgroups/20ng_tfidf_cai_top10.csv.labels";
 #DATA_PATH = "./cure_large.dat";
 #LABEL_PATH = "./cure_large.dat.labels";
+
 DATA_PATH=parsed_args["inputfile"]
 LABEL_PATH=parsed_args["labelfile"]
 nofworkers=parse(parsed_args["nworkers"])
@@ -45,7 +46,7 @@ push!(LOAD_PATH, pwd())
 
 @everywhere using Distances
 @everywhere using StatsBase
-@everywhere import Clustering 
+#@everywhere import Clustering 
 @everywhere using LightGraphs
 @everywhere include("WorkerSNN.jl")
 @everywhere include("MasterSNN.jl")
@@ -66,9 +67,13 @@ println("Dataset ",DATA_PATH," (#Docs:",N,"/#Features:",dim,") and Num. of worke
 pct_sample = 10; pct_sample = pct_sample/100; # (%) percentage of each local worker that will be sampled and transmitted to the Mas2ter
 
 #global score statistics (along cut_point values)
-summary_scores = Dict{String, Array{Tuple{Float64, Float64}, 1}}("elapsed"=>[], "bytesalloc" => [], "E"=>[], "P" => [], "ARI" => [], "AMI" => [], "NMI" => [], "H" => [], "C" => [], "VM" => [])
 nruns = 10;# number of runs per cut_point value
-cut_values = collect(5:5:40);
+#cut_values = collect(45:5:80);
+cut_values = collect(5:10:120);
+
+#summary_scores = Dict{String, Array{Tuple{Float64, Float64}, 1}}("elapsed"=>[], "bytesalloc" => [], "E"=>[], "P" => [], "ARI" => [], "AMI" => [], "NMI" => [], "H" => [], "C" => [], "VM" => [], "cut_range" => cut_values, "nruns" => nruns, "nworkers" => nofworkers)
+summary_scores = Dict{String, Any}("elapsed"=>[], "bytesalloc" => [], "E"=>[], "P" => [], "ARI" => [], "AMI" => [], "NMI" => [], "H" => [], "C" => [], "VM" => [], "cut_range" => cut_values, "nruns" => nruns, "nworkers" => nofworkers)
+
 for cut_point=cut_values
     @printf "Starting runs with snn_cut_point:%d\n" cut_point 
     #score values attained along runs
@@ -78,7 +83,8 @@ for cut_point=cut_values
         partition = generate_partition(nofworkers, N); #N instances assigned to nofworkers cores.
         # Performs the clustering task
         results = Dict{String,Any}()        
-        _, elapsed_t, bytes_alloc, _, _ = @timed master_work(results, DATA_PATH, partition, pct_sample, similarity="cosine", KNN=7, Eps_range=collect(5:5:40.0), MinPts_range=collect(5:5:40), k_range=[50], snn_cut_point=cut_point);
+        #_, elapsed_t, bytes_alloc, _, _ = @timed master_work(results, DATA_PATH, partition, pct_sample, similarity="cosine", KNN=7, Eps_range=collect(5:5:40.0), MinPts_range=collect(5:5:40), k_range=[50], snn_cut_point=cut_point);
+        _, elapsed_t, bytes_alloc, _, _ = @timed master_work(results, DATA_PATH, partition, pct_sample, similarity="cosine", KNN=7, snn_cut_point=cut_point);
 
         push!(run_scores["elapsed"], elapsed_t)
         push!(run_scores["bytesalloc"], bytes_alloc)

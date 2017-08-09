@@ -31,7 +31,8 @@ function exec_cluto_rb(vectors_file::String, nclusters::Int64; CLUTOV_CMD::Strin
     return labels
 end
 
-function master_work(results::Dict{String, Any}, inputPath::String, partition::Array{Int64,1}, pct_sample::Float64;similarity::String="cosine", K::Int64=50, KNN::Int64=3,Eps_range = collect(5.0:5.0:50.0), MinPts_range = collect(20:10:50),k_range = [40, 50], snn_cut_point::Int64=5)
+#function master_work(results::Dict{String, Any}, inputPath::String, partition::Array{Int64,1}, pct_sample::Float64;similarity::String="cosine", K::Int64=50, KNN::Int64=3,Eps_range = collect(5.0:5.0:50.0), MinPts_range = collect(20:10:50),k_range = [40, 50], snn_cut_point::Int64=5)
+function master_work(results::Dict{String, Any}, inputPath::String, partition::Array{Int64,1}, pct_sample::Float64;similarity::String="cosine", K::Int64=50, KNN::Int64=3,snn_cut_point::Int64=5)
     
     N = length(partition);
     Nnodes = length(unique(partition));
@@ -50,10 +51,7 @@ function master_work(results::Dict{String, Any}, inputPath::String, partition::A
             worker_assignment,                
             inputPath,
             pct_sample,
-            similarity=similarity,
-            Eps_range=Eps_range, 
-            MinPts_range=MinPts_range,
-            k_range=k_range);
+            similarity=similarity);
         end
     end
     

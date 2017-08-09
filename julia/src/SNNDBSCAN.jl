@@ -89,4 +89,22 @@ module SNNDBSCAN
             end
         end
     end
+
+    function snn_clustering(Eps::Float64, MinPts::Int64, Snn::Array{Float64,2})        
+        num_points = size(Snn)[1]
+        d_point_cluster_id = Dict{Int64, Int64}();            
+        cluster_assignment = fill(UNCLASSIFIED, num_points);
+        corepoints = Int64[];
+        for i=collect(1:num_points)
+            d_point_cluster_id[i] = UNCLASSIFIED;
+        end
+
+        dbscan(num_points, Eps, MinPts, Snn, d_point_cluster_id, corepoints)
+
+        for i=collect(1:num_points)
+            cluster_assignment[i] = d_point_cluster_id[i]
+        end 
+
+        return cluster_assignment
+    end
 end
