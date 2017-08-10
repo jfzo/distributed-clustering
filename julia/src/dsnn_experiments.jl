@@ -67,16 +67,16 @@ println("Dataset ",DATA_PATH," (#Docs:",N,"/#Features:",dim,") and Num. of worke
 pct_sample = 10; pct_sample = pct_sample/100; # (%) percentage of each local worker that will be sampled and transmitted to the Mas2ter
 
 #global score statistics (along cut_point values)
-nruns = 10;# number of runs per cut_point value
-cut_values = collect(5:5:50);
-#cut_values = collect(5:5:100);
+nruns = 5;# number of runs per cut_point value
+cut_values = collect(5:5:40);
+#cut_values = collect(50:5:100);
 
 k_range=[50]
-worker_eps_start_val, worker_eps_step_val, worker_eps_end_val=5.0, 10.0, Inf;
-worker_minpts_start_val, worker_minpts_step_val, worker_minpts_end_val=5, 10, Inf
+worker_eps_start_val, worker_eps_step_val, worker_eps_end_val=10.0, 20.0, Inf;
+worker_minpts_start_val, worker_minpts_step_val, worker_minpts_end_val=10, 20, Inf
 
 
-summary_scores = Dict{String, Any}("elapsed"=>[], "bytesalloc" => [], "E"=>[], "P" => [], "ARI" => [], "AMI" => [], "NMI" => [], "H" => [], "C" => [], "VM" => [], "cut_range" => cut_values, "nruns" => nruns, "nworkers" => nofworkers)
+summary_scores = Dict{String, Any}("elapsed"=>[], "bytesalloc" => [], "E"=>[], "P" => [], "ARI" => [], "AMI" => [], "NMI" => [], "H" => [], "C" => [], "VM" => [], "cut_range" => cut_values, "nruns" => nruns, "nworkers" => nofworkers, "worker_epsilon_range"=>(worker_eps_start_val, worker_eps_step_val, worker_eps_end_val), "worker_minpts_range"=>(worker_minpts_start_val, worker_minpts_step_val, worker_minpts_end_val), "worker_k_range"=>k_range)
 
 for cut_point=cut_values
     @printf "Starting runs with snn_cut_point:%d\n" cut_point 

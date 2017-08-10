@@ -218,6 +218,8 @@ function tuned_snn_clustering(D::Array{Float64,2},
         #compute_similarities(D, k, Snn, S, similarity=similarity);
         Dnn = k-Snn;
         
+        #println("***worker tunes with k:",k," ranges->epsilon:{",Eps_range,"} minpts{",MinPts_range,"}")
+
         for epsilon = Eps_range
             for MinPts = MinPts_range
                 

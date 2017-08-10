@@ -1,7 +1,24 @@
 from sparse_similarity_computation import compute_knn
 import numpy as np
 
+def compute_snn_sim(S, k):
+    #S is a similarity matrix
+    import numpy as  np
+    N = S.shape[0]
+    k = min(k, N)
+    
+    nn = np.zeros(S.shape)
+    
+    for i in range(N):
+        nn_ixs_i = np.argsort(S[:,i])[-(k+1):]
+        nn[nn_ixs_i, i] = 1
+        nn[i,i] = 0
 
+    nn = np.dot(nn.transpose(), nn)
+    for i in range(N):
+        nn[i,i] = 0
+    return nn
+    
 def compute_snn(KNN):
     """
     compute_SNN(KNN)
@@ -94,7 +111,13 @@ plt.imshow(S)
 plt.show()
 """
 
+def compute_euclidean_similarity(DATA):
+    from sklearn.metrics.pairwise import euclidean_distances
 
+    D = euclidean_distances(DATA, DATA)
+    #S = 1 - (D - np.min(D))/(np.max(D)-np.min(D))
+    S = 1./(1+D);
+    return S
 
 if __name__ == '__main__':
     import numpy as np
