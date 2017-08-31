@@ -154,7 +154,7 @@ function compute_similarities(P::Array{Float64,2}, k::Int64, Snn::Array{Float64,
         #println("Using euclidean similarity")
         euclidean_sim(P, S);
     else
-        println("Selected similarity function not available. Using cosine function instead!") 
+        #println("Selected similarity function not available. Using cosine function instead!") 
         cosine_sim(P, S);
     end
     
@@ -260,7 +260,7 @@ function tuned_snn_clustering(D::Array{Float64,2},
     end
  
     if max_sil == -1
-        println("No parameter setting found.");
+        println("[W] No parameter setting found.");
     end
     #assert(length(max_sil_params) > 0) # otherwise, no valid clustering was achieved!
     
@@ -297,7 +297,7 @@ function local_work(assigned_instances::Array{Int64,1},
     worker_minpts_end_val::Float64;
     similarity::String="cosine")
     #=
-     Takes a file path where the data matrix is stored.
+     Takes a file path where the data matrix is storedXX.
     
     It is inmportant that assigned_instances is sorted in ascending order as in this way the indexes will match the 
     column ids of the matrix retrieved by get_slice_from_input_file.
@@ -373,6 +373,8 @@ function local_work_final(assigned_instances::Array{Int64,1}, corepoints::Array{
     
      Returns a core-point sample (col ids of the original matrix as denoted by assigned_instances).
      This sample is built from the core-points detected by the SNN algorithm ran within the node.
+    
+    corepoints must be sorted asc.
     =#
 
     already_assigned_corepoints = Int64[];
@@ -392,10 +394,6 @@ function local_work_final(assigned_instances::Array{Int64,1}, corepoints::Array{
     end
     sort!(L)
     
-    # j is an assigned instance or a core point, then 
-    # instance_map[j] -> Denotes the column number of the local Similarity matrix.
-    data_to_local = Dict{Int64, Int64}(zip(L, collect(1:length(L)) )) # maps each instance-id to the corresponding data column id
-    
     N  = length(L);
     
     M, dim = get_header_from_input_file(inputPath)
@@ -409,10 +407,44 @@ function local_work_final(assigned_instances::Array{Int64,1}, corepoints::Array{
     compute_similarities(D, k, Snn, S, similarity=similarity);
     
     # Identify the mapping between local data indexes and overall data indexes
+    
     # corepoint indexes in the similarity matrix.
-    corepoint_ixs = map(x->data_to_local[x], corepoints);
+    #corepoint_ixs = map(x->data_to_local[x], corepoints);
+    corepoint_ixs = find(x->x in corepoints, L);
+    
     # borderpoint indexes in the similarity matrix.
-    assigned_without_corepoints = find(x->~(x in corepoints), assigned_instances);# positions in assigned_instances
+    #assigned_without_corepoints = find(x->~(x in corepoints), assigned_instances);# positions in assigned_instances
+    borderpoint_ixs = find(x->~(x in corepoints), L);# positions in assigned_instances    
+    assigned_without_corepoints = find(x->~(x in corepoints), assigned_instances); #indexes in assigned associated to bpoints
+    #|borderpoint_ixs| == |assigned_without_corepoints|
+    
+    #KNN classification
+    nst_cp_label = fill(-10, length(borderpoint_ixs));
+    red_Snn = Snn[:,corepoint_ixs]; # one column for each corepoint (same length as corepoint_labels)
+    for ix=collect(1:length(borderpoint_ixs))
+        i = borderpoint_ixs[ix];
+        n_core_ixs = sortperm(red_Snn[i,:], rev=true)[1:KNN]; #KNN corepoints in DESC order by similarity to i.
+        n_core_labels = corepoint_labels[n_core_ixs]; #label of each selected nearest corepoint.
+        
+        u_label_lst = unique(n_core_labels); # list of unique labels involved.        
+        label_cnt = countmap(n_core_labels); # map with counts for each label involved
+        u_label_cnt = map(l -> label_cnt[l], u_label_lst); # count list for each label involved
+        
+        cnt, label_ix = findmax(u_label_cnt); #gets the max-count and the label index associated.
+        nst_cp_label[ix] = u_label_lst[label_ix]; # the majority label 
+    end
+    
+    #=
+    # j is an assigned instance or a core point, then 
+    # instance_map[j] -> Denotes the column number of the local Similarity matrix.
+    data_to_local = Dict{Int64, Int64}(zip(L, collect(1:length(L)) )) # maps each instance-id to the corresponding data column id
+    
+    # corepoint indexes in the similarity matrix.
+    corepoint_ixs = map(x->data_to_local[x], corepoints);   
+    
+    # borderpoint indexes in the similarity matrix.
+    assigned_without_corepoints = find(x->~(x in corepoints), assigned_instances);# positions in assigned_instances    
+    
     border_instances = assigned_instances[assigned_without_corepoints];
     borderpoint_ixs = map(x->data_to_local[x], border_instances);
     
@@ -435,7 +467,7 @@ function local_work_final(assigned_instances::Array{Int64,1}, corepoints::Array{
             end
         end
     end
-    
+    =#
     ####
     #assert(length(already_assigned_corepoints)+length(border_instances) == length(assigned_instances))
     

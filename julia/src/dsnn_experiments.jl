@@ -41,15 +41,16 @@ else
     println("No worker to remove!")
 end
 
-addprocs(nofworkers)
+#addprocs(nofworkers)
+addprocs(["root@158.251.93.5:3302","root@158.251.93.5:3303","root@158.251.93.5:3304","root@158.251.93.5:3305","root@158.251.93.5:3306","root@158.251.93.5:3307","root@158.251.93.5:3308","root@158.251.93.5:3309","root@158.251.93.5:3310","root@158.251.93.5:3311","root@158.251.93.5:3312","root@158.251.93.5:3313","root@158.251.93.5:3314","root@158.251.93.5:3315"])
 push!(LOAD_PATH, pwd())
 
 @everywhere using Distances
 @everywhere using StatsBase
 #@everywhere import Clustering 
 @everywhere using LightGraphs
+include("MasterSNN.jl")
 @everywhere include("WorkerSNN.jl")
-@everywhere include("MasterSNN.jl")
 @everywhere include("IOSNN.jl")
 @everywhere include("SNNDBSCAN.jl")
 @everywhere include("SNNGraphUtil.jl")
@@ -58,22 +59,23 @@ using PyCall
 @pyimport clustering_scores as cs #clustering_scores.py must be in the path.
 using JLD
 
-real_labels = vec(readdlm(LABEL_PATH, Int32));
+#real_labels = vec(readdlm(LABEL_PATH, Int32));
 N, dim = get_header_from_input_file(DATA_PATH);
+real_labels = zeros(N,1)
 
 #DATA = zeros(dim,N);
 #get_cluto_data(DATA, DATA_PATH);
 println("Dataset ",DATA_PATH," (#Docs:",N,"/#Features:",dim,") and Num. of workers:",nofworkers);
-pct_sample = 10; pct_sample = pct_sample/100; # (%) percentage of each local worker that will be sampled and transmitted to the Mas2ter
+pct_sample = 3; pct_sample = pct_sample/100; # (%) percentage of each local worker that will be sampled and transmitted to the Mas2ter
 
 #global score statistics (along cut_point values)
 nruns = 5;# number of runs per cut_point value
-cut_values = collect(5:5:40);
-#cut_values = collect(50:5:100);
+#cut_values = collect(50:10:150);
+cut_values = [50];
 
 k_range=[50]
-worker_eps_start_val, worker_eps_step_val, worker_eps_end_val=10.0, 20.0, Inf;
-worker_minpts_start_val, worker_minpts_step_val, worker_minpts_end_val=10, 20, Inf
+worker_eps_start_val, worker_eps_step_val, worker_eps_end_val=10.0, 10.0, Inf;
+worker_minpts_start_val, worker_minpts_step_val, worker_minpts_end_val=10, 10, Inf
 
 
 summary_scores = Dict{String, Any}("elapsed"=>[], "bytesalloc" => [], "E"=>[], "P" => [], "ARI" => [], "AMI" => [], "NMI" => [], "H" => [], "C" => [], "VM" => [], "cut_range" => cut_values, "nruns" => nruns, "nworkers" => nofworkers, "worker_epsilon_range"=>(worker_eps_start_val, worker_eps_step_val, worker_eps_end_val), "worker_minpts_range"=>(worker_minpts_start_val, worker_minpts_step_val, worker_minpts_end_val), "worker_k_range"=>k_range)
