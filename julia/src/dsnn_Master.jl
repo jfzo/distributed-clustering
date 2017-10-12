@@ -27,7 +27,7 @@ module DSNN_Master
             sort!(worker_assignment)
             @async begin
                 worker_result[node_id] = remotecall_fetch( 
-                local_work, #function call
+                stage1_start, #function call
                 pid,
                 worker_assignment,                
                 inputPath,
