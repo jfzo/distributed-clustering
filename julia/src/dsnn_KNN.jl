@@ -325,7 +325,7 @@ function get_snnmatrix(ix::ApIndexJoin, KNN::Int64)
     end
     nnmat = sparse(I,J,V);
     # 2nd. SharedNearesNeighbors are computed by the matrix product.
-    snnmat = *(transpose(nnmat),nnmat);
+    snnmat = *(transpose(nnmat),nnmat) / KNN;
     return snnmat;
 end
 

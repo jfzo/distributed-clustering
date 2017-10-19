@@ -1,5 +1,7 @@
 module DSNN_Worker
 
+#using DSNN_IO
+
 function stage1_start(assigned_instances::Array{Int64,1}, 
     inputPath::String, 
     pct_sample::Float64,
@@ -14,9 +16,7 @@ function stage1_start(assigned_instances::Array{Int64,1},
      This sample is built from the core-points detected by the SNN algorithm ran within the node.
     =#
 
-    M, dim = get_header_from_input_file(inputPath)
-    d = zeros(dim, length(assigned_instances));
-    get_slice_from_input_file(d, inputPath, assigned_instances);
+    d = DSNN_IO.load_selected_sparse_matrix(inputPath, assigned_instances)
     
     #cluster_assignment, core_points, cluster_labels = snn_clustering(d, Eps, MinPts, k, similarity=similarity)
     

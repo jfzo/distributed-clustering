@@ -1,20 +1,22 @@
 module DSNN_IO
-function sparseMatFromFile(inputFile::String)
-    """
-    sp_from_input_file(inputPath[,instance_array])
 
-    Builds a sparse matrix from the content stored at `inputPath`. 
-    * Filters the rows indicated in the array `instance_array`. If `instance_array` is missing all the rows are 
-    included. 
-    The resulting array contains the columns of the file in its rows.
-    If `objects_as_rows` (set as false by default) is set to true, then the resulting matrix contains
-    objects as rows and features as columns.
 
-    # Examples
-    ```julia-repl
-    julia> D = get_slice_from_input_file("20newsgroups/20ng_tf_cai.csv")
-    ```
-    """
+"""
+    sparseMatFromFile(inputPath)
+
+Builds a sparse matrix from the content stored at _inputPath_. 
+* Filters the rows indicated in the array `instance_array`. If `instance_array` is missing all the rows are 
+included. 
+The resulting array contains the columns of the file in its rows.
+If `objects_as_rows` (set as false by default) is set to true, then the resulting matrix contains
+objects as rows and features as columns.
+
+# Examples
+```julia-repl
+julia> D = sparseMatFromFile("20newsgroups/20ng_tf_cai.csv")
+```
+"""
+function sparseMatFromFile(inputFile::String)    
     content = read(inputFile);
     src = IOBuffer(content);
     n = parse(Int64, readuntil(src, " "));
@@ -85,4 +87,49 @@ function load_sparse_matrix(fname::String)
     return spm;
 end
 
+
+"""
+    load_selected_sparse_matrix(fname, instancess_to_pick)
+
+Load sparse data from HDF5 file but it only chooses the COLUMNS whose indexes are contained
+into insts_to_pick.
+
+# Example
+```julia-repl
+julia> m2 = DSNN_IO.load_selected_sparse_matrix("/tmp/sample_mat.sp", [1,5,10])
+```
+"""
+function load_selected_sparse_matrix(fname::String, insts_to_pick::Array{Int64,1})
+    fid=h5open(fname, "r");
+        
+    if !(exists(fid["DATA"], "I") || exists(fid["DATA"], "J")|| exists(fid["DATA"], "V"))
+        throw(ErrorException("No data available (X, Y)"));
+    end
+    I = read(fid["DATA"]["I"]);
+    J = read(fid["DATA"]["J"]);
+    V = read(fid["DATA"]["V"]);
+    newI = Int64[];
+    newJ = Int64[];
+    newV = similar(V, 0);#initialized array with 0 element
+    next_j = 0
+    prev_j = 0
+    for i in eachindex(J)
+
+        if !(J[i] in insts_to_pick)
+            continue;
+        end
+        if prev_j != J[i]
+            next_j += 1
+            prev_j = J[i]
+        end
+
+        push!(newJ, next_j);
+        push!(newI, I[i]);
+        push!(newV, V[i]);
+    end
+
+    spm = sparse(newI,newJ,newV);
+    close(fid);
+    return spm;
+end
 end
