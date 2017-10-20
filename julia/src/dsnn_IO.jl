@@ -63,6 +63,45 @@ end
 
 using HDF5
 
+function store_dense_matrix{vtype}(X::Array{vtype,2}, fname::String; labels::Array{Int8, 1}=Int8[])
+    fid=h5open(fname, "w");
+    write(fid, "DATA/X", X);
+    if length(labels) > 0
+        write(fid, "DATA/LABELS", labels);
+    end
+    close(fid);
+    h5writeattr(fname, "DATA", Dict("nrows"=>size(X, 1), "ncols"=>size(X, 2)));
+end
+
+function load_dense_matrix(fname::String; with_labels::Bool=false)
+
+    fid=h5open(fname, "r");
+        
+    if !exists(fid["DATA"], "X")
+        throw(ErrorException("No data available"));
+    end
+
+    X = read(fid["DATA"]["X"]);
+    if exists(attrs(fid["DATA"]), "nrows") && exists(attrs(fid["DATA"]), "ncols")
+        nrows = read(attrs(fid["DATA"]), "nrows");
+        ncols = read(attrs(fid["DATA"]), "ncols");
+        if size(X,1) != nrows
+            transpose!(X);
+        end
+    end
+    
+    labels = Int8[];
+    if with_labels && exists(fid["DATA"], "LABELS")
+        labels = read(fid["DATA"]["LABELS"]);
+    end
+
+    close(fid);
+    if length(labels) > 0
+        return X, labels
+    end
+    return X; 
+end
+
 function store_sparse_matrix{vtype}(m::SparseMatrixCSC{vtype,Int64}, fpath::String)
     fid=h5open(fpath, "w");
     I, J, V = findnz(m);
