@@ -16,50 +16,65 @@ objects as rows and features as columns.
 julia> D = sparseMatFromFile("20newsgroups/20ng_tf_cai.csv")
 ```
 """
-function sparseMatFromFile(inputFile::String)    
-    content = read(inputFile);
-    src = IOBuffer(content);
-    n = parse(Int64, readuntil(src, " "));
-    #println(n)
-    d = parse(Int64, readuntil(src, " "));
-    #println(d)
-    nnv = parse(Int64, readuntil(src, "\n"));
+function sparseMatFromFile(inputPath::String; assigned_instances::Array{Int64,1}=Int64[], objects_as_rows::Bool=false, l2normalize::Bool=false)
+    """
+    sp_from_input_file(inputPath[,instance_array])
 
-    r = Int64[];
-    c = Int64[];
-    v = Float64[];
+    Builds a sparse matrix from the content stored at `inputPath`. Also filters the rows
+    indicated in the array `instance_array`. If `instance_array` is missing all the rows are 
+    included. The resulting array contains the columns of the file in its rows.
+    If `objects_as_rows` (set as false by default) is set to true, then the resulting matrix contains
+    objects as rows and features as columns.
 
+    # Examples
+    ```julia-repl
+    julia> D = get_slice_from_input_file("20newsgroups/20ng_tf_cai.csv")
+    ```
+    """
+    f = open(inputPath)
+    n, d, nnv = map(x->parse(Int32, x), split(readline(f)));
+    
+    if length(assigned_instances) == 0
+        assigned_instances = collect(1:n);
+    end
+
+    D = spzeros(Float64, d, n);
 
     inst_id = 1
-    cnt::Int64 = 0
-    for ln in eachline(src)
-        cnt = cnt + 1;
-        instance = split(ln);
+    cnt = 0
+    for ln in eachline(f)
+        if inst_id in assigned_instances
+            cnt = cnt + 1;
+            instance = split(ln);
+            for ix=collect(1:2:length(instance))
+                feat_ix = parse(Int64, instance[ix]);
+                feat_value = parse(Float64, instance[ix+1]);
 
-        for ix=collect(1:2:length(instance))
-
-            feat_ix = parse(Int64, instance[ix]);
-            feat_value = parse(Float64, instance[ix+1]);
-
-            #println(feat_ix,",",inst_id," --> ",feat_value)
-            #D[feat_ix, cnt] = feat_value;
-            push!(r, feat_ix);
-            push!(c, cnt);
-            push!(v, feat_value);
+                #println(feat_ix,",",inst_id," --> ",feat_value)
+                D[feat_ix, cnt] = feat_value;
+            end
         end
-
         inst_id = inst_id + 1;
     end
-    close(src)
-    D = sparse(r,c,v,d,n);
-    for q=collect(1:n)
-        norm_v = norm(D[:,q]);
-        for qi = D[:,q].nzind
-            D[qi,q] = D[qi,q] / norm_v;
+    close(f)
+    
+    # normalizing column vectors
+    if l2normalize
+        for q=collect(1:n)
+            norm_v = suffix_norm(D[:,q], 0);
+            for qi = D[:,q].nzind
+                D[qi,q] = D[qi,q] / norm_v;
+            end
         end
     end
-    return D
+    
+    if objects_as_rows
+        return transpose(D);
+    else
+        return D
+    end
 end
+
 
 using HDF5
 

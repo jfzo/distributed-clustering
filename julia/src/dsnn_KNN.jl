@@ -309,7 +309,7 @@ end
 Returns the shared-nn similarity matrix.
 Employs an instance of ApIndexJoin to estimate pairwise distances.
 """
-function get_snnmatrix(ix::ApIndexJoin, KNN::Int64)
+function get_knnmatrix(ix::ApIndexJoin, KNN::Int64)
     
     # 1st. The near neighbor adjaceny matrix is built.
     # consider that the near neighbors for object i are represented by the
@@ -328,47 +328,19 @@ function get_snnmatrix(ix::ApIndexJoin, KNN::Int64)
         end
     end
     nnmat = sparse(I,J,V, ix.num_instances, ix.num_instances);
-    # 2nd. SharedNearesNeighbors are computed by the matrix product.
+    return nnmat;
+end
+
+function get_snnmatrix(ix::ApIndexJoin, KNN::Int64)
+    """
+    Returns the shared-nn similarity matrix.
+    """
+    nnmat = get_knnmatrix(ix, KNN);
+    
     snnmat = *(transpose(nnmat),nnmat) / KNN;
     return snnmat;
 end
 
 
-using NearestNeighbors
-
-"""
-    standalone_snngraph(COLWISEDATA, KNN)
-
-Builds and returns a SNN adjacency matrix containing SNN similarities.
-Employs a BallTree instance (_NearestNeighbors_ package) with the Euclidean metric since CosineDist is not a Metric.
-
-__Needs NearestNeighbors package__
-"""
-function standalone_snngraph(X::Array{Float64,2}, KNN::Int64)
-    
-    num_instances = size(X,2);
-    # needs: using NearestNeighbors
-    balltree = BallTree(X, Euclidean())
-    # 1st. The near neighbor adjaceny matrix is built.
-    # consider that the near neighbors for object i are represented by the
-    # rows having a 1 in column i
-    I = Int64[];
-    J = Int64[];
-    V = Int8[];
-    for q_i in collect(1:num_instances)
-        idxs, _ = knn(balltree, X[:,q_i], KNN, true);
-        for nn in idxs
-            push!(I, nn); # row denoting the near neighbor
-            push!(J, q_i); #column denoting the current object            
-            push!(V, Int8(1));
-        end    
-    end
-
-    
-    nnmat = sparse(I,J, V, num_instances, num_instances);
-    # 2nd. SharedNearesNeighbors are computed by the matrix product.
-    snnmat = *(transpose(nnmat),nnmat) / KNN;
-    return snnmat
-end
 
 end
