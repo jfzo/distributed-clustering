@@ -309,33 +309,48 @@ end
 Returns the shared-nn similarity matrix.
 Employs an instance of ApIndexJoin to estimate pairwise distances.
 """
-function get_knnmatrix(ix::ApIndexJoin, KNN::Int64)
+function get_knnmatrix(ix::ApIndexJoin, KNN::Int64; binarize::Bool=true, sim_threshold::Float64=-1.0)
     
     # 1st. The near neighbor adjaceny matrix is built.
     # consider that the near neighbors for object i are represented by the
     # rows having a 1 in column i
     I = Int64[];
     J = Int64[];
-    V = Int8[];
+    if binarize
+        V = Int8[];
+    else
+        V = Float64[];
+    end
     for q_i in collect(1:ix.num_instances)
-        maxnn_len = min(KNN, length(ix.nbrs[q_i]));   
-        
-        for nninfo in ix.nbrs[q_i][1:maxnn_len]
-            nn_ix = nninfo[2];
-            push!(J, q_i); #column denoting the current object
-            push!(I, nn_ix); # row denoting the near neighbor
-            push!(V, Int8(1));
+        added_nbrs = 0;
+        for nninfo in ix.nbrs[q_i][1:length(ix.nbrs[q_i])]
+            nn_sim, nn_ix = nninfo;
+            if nn_sim >= sim_threshold
+                push!(J, q_i); #column denoting the current object
+                push!(I, nn_ix); # row denoting the near neighbor
+                if binarize
+                    push!(V, Int8(1));
+                else
+                    push!(V, nn_sim);
+                end
+                added_nbrs += 1;
+            end
+            
+            if added_nbrs == KNN
+                break;
+            end
         end
     end
     nnmat = sparse(I,J,V, ix.num_instances, ix.num_instances);
     return nnmat;
 end
 
-function get_snnmatrix(ix::ApIndexJoin, KNN::Int64)
+
+function get_snnmatrix(ix::ApIndexJoin, KNN::Int64; sim_threshold::Float64=-1.0)
     """
     Returns the shared-nn similarity matrix.
     """
-    nnmat = get_knnmatrix(ix, KNN);
+    nnmat = get_knnmatrix(ix, KNN, binarize=true, sim_threshold=sim_threshold);# it is required a binary matrix
     
     snnmat = *(transpose(nnmat),nnmat) / KNN;
     return snnmat;

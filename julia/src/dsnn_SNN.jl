@@ -110,7 +110,8 @@ function snn_clustering(Eps::Float64, MinPts::Int64, Snn::SparseMatrixCSC{Float6
         cluster_assignment[i] = d_point_cluster_id[i]
     end 
 
-    return cluster_assignment
+    #return cluster_assignment
+    return Dict{String, Array{Int64, 1}}("labels"=>cluster_assignment, "corepoints" => corepoints)
 end
 
 end
