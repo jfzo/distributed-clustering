@@ -114,4 +114,121 @@ function snn_clustering(Eps::Float64, MinPts::Int64, Snn::SparseMatrixCSC{Float6
     return Dict{String, Array{Int64, 1}}("labels"=>cluster_assignment, "corepoints" => corepoints)
 end
 
+
+
+#===========================================================================================
+                            THIS IS ANOTHER IMPLEMENTATION
+===========================================================================================#
+"""
+get_corepoints(epsilon, MinPts, shared_nn_similarity)
+
+Computes the density of each point and then identifies the corepoints.
+Returns tow arrays: One with the corepoints (their index numbers) and another of length equals to the number
+of points that contains a false value when the point is not a corepoint and a true value in the opposite case.
+"""
+function get_corepoints(Eps::Float64, MinPts::Int64, Snn::SparseMatrixCSC{Float64,Int64})
+    # STEP 4 & 5 - find the SNN density of each point and identify corepoints
+    N = size(Snn,1);
+
+    snndensity = fill(0, N);
+    iscore = fill(false, N);
+    corepts = Int64[];
+    
+    for i in collect(1:N)
+        for simv in Snn[:,i].nzval
+            if simv  >= Eps
+                snndensity[i] += 1;
+            end
+        end
+        if snndensity[i] >= MinPts
+            push!(corepts, i);
+            iscore[i] = true;
+        end
+    end
+    return corepts, iscore;
+end
+
+function get_cluster_labels(corepoints::Array{Int64, 1}, Eps::Float64, MinPts::Int64, Snn::SparseMatrixCSC{Float64,Int64})
+    N = size(Snn,1);
+
+    labels = fill(UNCLASSIFIED, N);
+    isvisited = fill(false, N);
+    
+    current_cluster_label = 0;
+    for i in eachindex(corepoints)
+        p = corepoints[i];
+        if isvisited[p]
+            continue
+        end
+        isvisited[p] = true;
+        current_cluster_label += 1;
+        labels[p] = current_cluster_label;
+        p_corenbrs = find_core_nbrs(p, corepoints, Eps, Snn);
+        expand_cluster(labels, p_corenbrs, corepoints, current_cluster_label, Eps, isvisited, Snn);
+    end
+    return labels
+end
+
+function expand_cluster(labels::Array{Int64, 1}, corenbrs::Set{Int64}, corepoints::Array{Int64, 1}, current_cluster_label::Int64, Eps::Float64, isvisited::Array{Bool, 1}, Snn::SparseMatrixCSC{Float64,Int64})
+    
+    N = size(Snn,1);
+    
+    while length(corenbrs) > 0
+        q = pop!(corenbrs);
+        if isvisited[q]
+            continue
+        end
+        labels[q] = current_cluster_label;
+        isvisited[q] = true;
+        q_corenbrs = find_core_nbrs(q, corepoints, Eps, Snn);
+        corenbrs = union(corenbrs, q_corenbrs);
+    end    
+end
+
+function find_core_nbrs(p::Int64, corepoints::Array{Int64, 1}, Eps::Float64, Snn::SparseMatrixCSC{Float64,Int64})
+    N = size(Snn,1);
+    corenbrs = Set{Int64}();
+    for i in eachindex(corepoints)
+        q = corepoints[i];
+        if q != p && Snn[q,p] >= Eps
+            push!(corenbrs, q);
+        end
+    end
+    return corenbrs
+end
+
+function snn_clustering_esk03(Eps::Float64, MinPts::Int64, Snn::SparseMatrixCSC{Float64,Int64})
+    corepoints, iscore = get_corepoints(Eps, MinPts, Snn);
+    labels = get_cluster_labels(corepoints, Eps, MinPts, Snn);
+    process_non_corepoints(labels, corepoints, iscore, Eps, Snn);
+    return Dict{String, Array{Int64, 1}}("labels"=>labels, "corepoints" => corepoints)
+end
+
+function process_non_corepoints(labels::Array{Int64, 1}, corepoints::Array{Int64, 1}, iscore::Array{Bool, 1}, Eps::Float64, Snn::SparseMatrixCSC{Float64,Int64})
+    N = size(Snn,1);
+    
+    # visit each non-corepoint
+    for i in collect(1:N)
+        if iscore[i]
+            continue
+        end
+        # get the nearest corepoint
+        nst_core = -1;
+        nst_core_sim = -1;
+        for q in Snn[:,i].nzind
+            if iscore[q]  # consider only corepoint neighbors
+                if Snn[q,i] > nst_core_sim
+                    nst_core = q;
+                    nst_core_sim = Snn[q,i];
+                end
+            end
+        end
+        if nst_core_sim >= Eps
+            labels[i] = labels[nst_core];
+        else
+            labels[i] = NOISE;
+        end
+    end
+end
+    
 end
