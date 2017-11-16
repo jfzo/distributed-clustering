@@ -304,9 +304,10 @@ end
 
 
 """
-    get_snnmatrix(ApproxSimIndex, KNN)
+    get_knnmatrix(appIndex, KNN, [binarize], [sim_threshold])
 
-Returns the shared-nn similarity matrix.
+Returns the KNN matrix in which the KNN nearest neighbors for each data point i are identified in column i and also returns the neighborhood length for each point.
+If the binarize optional parameter is set to false, then the similarities are put instead of a 1 in each column.
 Employs an instance of ApIndexJoin to estimate pairwise distances.
 """
 function get_knnmatrix(ix::ApIndexJoin, KNN::Int64; binarize::Bool=true, sim_threshold::Float64=-1.0)
@@ -316,46 +317,165 @@ function get_knnmatrix(ix::ApIndexJoin, KNN::Int64; binarize::Bool=true, sim_thr
     # rows having a 1 in column i
     I = Int64[];
     J = Int64[];
+    
+    nbrhd_len = fill(0, ix.num_instances);
+    
     if binarize
-        V = Int8[];
+        V = Float64[];
     else
         V = Float64[];
     end
     for q_i in collect(1:ix.num_instances)
         added_nbrs = 0;
-        for nninfo in ix.nbrs[q_i][1:length(ix.nbrs[q_i])]
+        len_nbrh_q_i = length(ix.nbrs[q_i]);       
+        
+        for nninfo in ix.nbrs[q_i][1:len_nbrh_q_i]
             nn_sim, nn_ix = nninfo;
             if nn_sim >= sim_threshold
                 push!(J, q_i); #column denoting the current object
                 push!(I, nn_ix); # row denoting the near neighbor
+                
                 if binarize
-                    push!(V, Int8(1));
+                    push!(V, 1.0);
                 else
                     push!(V, nn_sim);
                 end
+                
                 added_nbrs += 1;
             end
-            
-            if added_nbrs == KNN
+
+            if added_nbrs == KNN                
                 break;
             end
         end
+        nbrhd_len[q_i] = added_nbrs;
     end
     nnmat = sparse(I,J,V, ix.num_instances, ix.num_instances);
-    return nnmat;
+    return nnmat, nbrhd_len;
 end
 
 
-function get_snnmatrix(ix::ApIndexJoin, KNN::Int64; sim_threshold::Float64=-1.0)
-    """
-    Returns the shared-nn similarity matrix.
-    """
-    nnmat = get_knnmatrix(ix, KNN, binarize=true, sim_threshold=sim_threshold);# it is required a binary matrix
+"""
+    get_snnsimilarity(ApproxSimIndex, KNN)
+
+Returns the shared-nn similarity matrix.
+Employs an instance of ApIndexJoin to estimate pairwise distances.
+"""
+function get_snnsimilarity(ix::ApIndexJoin, KNN::Int64; sim_threshold::Float64=-1.0)
+    nnmat, nbrhd_len = get_knnmatrix(ix, KNN, binarize=true, sim_threshold=sim_threshold);# it is required a binary matrix
     
-    snnmat = *(transpose(nnmat),nnmat) / KNN;
+    snnmat = *(transpose(nnmat),nnmat);
+    
+    for i in collect(1:size(snnmat,2))
+        for j in snnmat[:,i].nzind
+            if i == j
+                snnmat[j,i] = 0;
+            elseif  nbrhd_len[i] > 0
+                snnmat[j,i] = snnmat[j,i] / nbrhd_len[i];
+            end
+        end
+    end
+    
     return snnmat;
 end
 
 
 
+"""
+    get_snnsimilarity(KNNMatrix, NbrhdsLenght)
+
+Returns the shared-nn similarity matrix.
+Employs a binary K-NearestNeighbor matrix (column based) and the lenght of each point's neighborhood
+"""
+function get_snnsimilarity(KNN::SparseMatrixCSC{Float64,Int64}, nbrhd_len::Array{Int64, 1})    
+    snnmat = *(transpose(KNN), KNN);
+    
+    for i in collect(1:size(snnmat,2))
+        for j in snnmat[:,i].nzind
+            if i == j
+                snnmat[j,i] = 0;
+            elseif  nbrhd_len[i] > 0
+                snnmat[j,i] = snnmat[j,i] / nbrhd_len[i];
+            end
+        end
+    end
+    
+    return snnmat;
+end
+
+
+"""
+    get_snngraph(KNNMatrix, SIMMatrix)
+
+KNNMatrix is a binary matrix, whose columns denote the neighbors of the object represented by the column index.
+Returns an adjacency matrix in which two vertices are connected only if both are in each other neighborhood.
+The weight of the edge that connects each pair of vertices is given by its similarity value.
+"""
+function get_snngraph(KNN::SparseMatrixCSC{Float64,Int64}, SIM::SparseMatrixCSC{Float64,Int64})
+    I = Int64[];
+    J = Int64[];
+    V = Float64[];
+
+    for i in collect(1:size(KNN, 2))
+        for j in eachindex(KNN[:,i].nzind)
+            nnb = KNN[:,i].nzind[j]
+            nnbval = KNN[:,i].nzval[j]
+            if KNN[i,nnb] > 0
+                if SIM[nnb, i] > 0 
+                    push!(J, i); #column denoting the current object
+                    push!(I, nnb); # row denoting the near neighbor
+                    push!(V, SIM[nnb, i] * nnbval)
+                end
+            end
+        end
+    end
+    snn_graph = sparse(I,J,V, size(SIM, 1),size(SIM, 2));
+
+    # ensureing that snn_graph is a symmetric matrix.
+    for i in collect(1:size(snn_graph, 2))
+        for j in eachindex(snn_graph[:,i].nzind)
+            nnb = snn_graph[:,i].nzind[j]
+            snn_graph[i, nnb] = snn_graph[nnb,i]
+        end
+    end
+    
+    return snn_graph;
+end
+
+
+"""
+    get_snngraph(KNNMatrix)
+
+KNNMatrix is a __NON__ binary matrix, whose columns denote the neighbors of the object represented by the column index.
+Returns an adjacency matrix in which two vertices are connected only if both are in each other neighborhood.
+The weight of the edge that connects each pair of vertices is given by its similarity value.
+"""
+function get_knngraph(KNN::SparseMatrixCSC{Float64,Int64})
+    I = Int64[];
+    J = Int64[];
+    V = Float64[];
+
+    for i in collect(1:size(KNN, 2))
+        for j in eachindex(KNN[:,i].nzind)
+            nnb = KNN[:,i].nzind[j]
+            nnbval = KNN[:,i].nzval[j]
+            if KNN[i,nnb] > 0 # both have to be in eachother's neighborhood.
+                push!(J, i); #column denoting the current object
+                push!(I, nnb); # row denoting the near neighbor
+                push!(V, nnbval)
+            end
+        end
+    end
+    snn_graph = sparse(I,J,V, size(KNN, 2),size(KNN, 2));
+
+    # ensureing that snn_graph is a symmetric matrix.
+    for i in collect(1:size(snn_graph, 2))
+        for j in eachindex(snn_graph[:,i].nzind)
+            nnb = snn_graph[:,i].nzind[j]
+            snn_graph[i, nnb] = snn_graph[nnb,i]
+        end
+    end
+    
+    return snn_graph;
+end
 end
