@@ -444,7 +444,7 @@ end
 
 
 """
-    get_snngraph(KNNMatrix)
+    get_knngraph(KNNMatrix)
 
 KNNMatrix is a __NON__ binary matrix, whose columns denote the neighbors of the object represented by the column index.
 Returns an adjacency matrix in which two vertices are connected only if both are in each other neighborhood.

@@ -134,7 +134,7 @@ function start(results::Dict{String, Any},
         sort!(worker_assignment)
         @async begin
             final_result[node_id] = remotecall_fetch( 
-            local_work_final, #function call
+            stage2_start, #function call
             pid,
             worker_assignment,
             overall_sample_corepoints,

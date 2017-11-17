@@ -32,12 +32,12 @@ function sparseMatFromFile(inputPath::String; assigned_instances::Array{Int64,1}
     ```
     """
     f = open(inputPath)
-    n, d, nnv = map(x->parse(Int32, x), split(readline(f)));
+    n_orig, d, nnv = map(x->parse(Int32, x), split(readline(f)));
     
     if length(assigned_instances) == 0
         assigned_instances = collect(1:n);
     end
-
+    n = length(assigned_instances)
     D = spzeros(Float64, d, n);
 
     inst_id = 1
@@ -61,7 +61,7 @@ function sparseMatFromFile(inputPath::String; assigned_instances::Array{Int64,1}
     # normalizing column vectors
     if l2normalize
         for q=collect(1:n)
-            norm_v = suffix_norm(D[:,q], 0);
+            norm_v = norm(D[:,q]);
             for qi = D[:,q].nzind
                 D[qi,q] = D[qi,q] / norm_v;
             end
@@ -153,36 +153,43 @@ into insts_to_pick.
 julia> m2 = DSNN_IO.load_selected_sparse_matrix("/tmp/sample_mat.sp", [1,5,10])
 ```
 """
-function load_selected_sparse_matrix(fname::String, insts_to_pick::Array{Int64,1})
+function load_selected_sparse_matrix(fname::String, cols_to_pick::Array{Int64,1})
     fid=h5open(fname, "r");
         
     if !(exists(fid["DATA"], "I") || exists(fid["DATA"], "J")|| exists(fid["DATA"], "V"))
         throw(ErrorException("No data available (X, Y)"));
     end
+    
+    indexmap = Dict{Int64, Int64}()
+    sort!(cols_to_pick);
+    ix = 1;
+    for i in cols_to_pick
+        #i original index
+        #indexmap[i] mapped element
+        indexmap[i] = ix;
+        ix += 1;
+    end
+    
     I = read(fid["DATA"]["I"]);
     J = read(fid["DATA"]["J"]);
     V = read(fid["DATA"]["V"]);
+
     newI = Int64[];
     newJ = Int64[];
     newV = similar(V, 0);#initialized array with 0 element
-    next_j = 0
-    prev_j = 0
+
     for i in eachindex(J)
 
-        if !(J[i] in insts_to_pick)
+        if !(J[i] in cols_to_pick)
             continue;
         end
-        if prev_j != J[i]
-            next_j += 1
-            prev_j = J[i]
-        end
-
-        push!(newJ, next_j);
+        
+        push!(newJ, indexmap[J[i]]);
         push!(newI, I[i]);
         push!(newV, V[i]);
     end
 
-    spm = sparse(newI,newJ,newV);
+    spm = sparse(newI,newJ,newV, length(unique(I)), length(cols_to_pick));
     close(fid);
     return spm;
 end
