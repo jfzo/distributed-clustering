@@ -125,7 +125,7 @@ function start(results::Dict{String, Any},
     println("[M] Retransmitting overall corepoints (centrally computed)...") 
     
     # Send the labeled core-points, and the assignments to each worker.
-    final_result = Dict{Int64, Array{Int64,1}}()    
+    final_result = Dict{Int64, Dict{Int64, Int64}}()    
     # Each worker will label the non-core points by using a KNN-core-point voting scheme.    
     @sync for (idx, pid) in enumerate(workers())
         #println(idx,' ', pid)
