@@ -134,6 +134,8 @@ function bounded_sim(q::Int64, c::Int64, ix::ApIndexJoin, M::SparseMatrixCSC{Flo
     return s
 end
 
+using DataStructures
+
 function fill_index!(ix::ApIndexJoin, M::SparseMatrixCSC{Float64, Int64}, k::Int64, epsilon::Float64, mu_1::Int64)
     """
     Vector (columns) in ´M´ are normalized and index ´ix´ is built.
@@ -158,15 +160,18 @@ function fill_index!(ix::ApIndexJoin, M::SparseMatrixCSC{Float64, Int64}, k::Int
 
         # RANK nnz features by weight
         v = M[:, q];
-        feat_pq = Collections.PriorityQueue(Int64, Float64, Base.Order.Reverse); # Forward implies lesser to higher        
+        #feat_pq = Collections.PriorityQueue(Int64, Float64, Base.Order.Reverse); # Forward implies lesser to higher        
+        feat_pq = DataStructures.PriorityQueue(Int64, Float64, Base.Order.Reverse); # Forward implies lesser to higher        
         for i in v.nzind
             feat_pq[i] = v[i]
         end
 
         # traverse the Feature-Index by following the RANK
         while length(feat_pq) > 0
-            j, q_j = Collections.peek(feat_pq); # getting the next feature for processing nghbs
-            Collections.dequeue!(feat_pq);
+            #j, q_j = Collections.peek(feat_pq); # getting the next feature for processing nghbs
+            j, q_j = DataStructures.peek(feat_pq); # getting the next feature for processing nghbs
+            #Collections.dequeue!(feat_pq);
+            DataStructures.dequeue!(feat_pq);
 
             # Recall that ix.idx[j] is a tuple-array of points containing that feature (sorted by weight)
             # Start checking Points with highest weight within the Array.
@@ -230,7 +235,8 @@ function improve_graph!(ix::ApIndexJoin, M::SparseMatrixCSC{Float64, Int64}, k::
         L = Tuple{Float64, Int64}[]; # candidate list
         T = zeros(Bool, nobjects);
         inCList = zeros(Bool, nobjects);
-        Q = Collections.PriorityQueue(Int64, Float64, Base.Order.Reverse)
+        #Q = Collections.PriorityQueue(Int64, Float64, Base.Order.Reverse)
+        Q = DataStructures.PriorityQueue(Int64, Float64, Base.Order.Reverse);
         l = 0;
         for (s_cq, dc) in I[q] # tagging all points whos nbrhds contain point q
             T[dc] = true;
@@ -242,8 +248,11 @@ function improve_graph!(ix::ApIndexJoin, M::SparseMatrixCSC{Float64, Int64}, k::
             Q[dc] = s_cq; # queueing neighbors (sorting by similarity)
         end
         while length(Q) > 0
-            dc, s_cq = Collections.peek(Q); # getting the next most similar neighbor
-            Collections.dequeue!(Q);
+            #dc, s_cq = Collections.peek(Q); # getting the next most similar neighbor
+            #Collections.dequeue!(Q);
+            dc, s_cq = DataStructures.peek(Q); # getting the next most similar neighbor
+            DataStructures.dequeue!(Q);
+
             if !inCList[dc]
                 push!(L, (s_cq, dc));
                 inCList[dc] = true
@@ -304,35 +313,178 @@ end
 
 
 """
-    get_snnmatrix(ApproxSimIndex, KNN)
+    get_knnmatrix(appIndex, KNN, [binarize], [sim_threshold])
 
-Returns the shared-nn similarity matrix.
+Returns the KNN matrix in which the KNN nearest neighbors for each data point i are identified in column i and also returns the neighborhood length for each point.
+If the binarize optional parameter is set to false, then the similarities are put instead of a 1 in each column.
 Employs an instance of ApIndexJoin to estimate pairwise distances.
 """
-function get_snnmatrix(ix::ApIndexJoin, KNN::Int64)
+function get_knnmatrix(ix::ApIndexJoin, KNN::Int64; binarize::Bool=true, sim_threshold::Float64=-1.0)
     
     # 1st. The near neighbor adjaceny matrix is built.
     # consider that the near neighbors for object i are represented by the
     # rows having a 1 in column i
     I = Int64[];
     J = Int64[];
-    V = Int8[];
+    
+    nbrhd_len = fill(0, ix.num_instances);
+    
+    if binarize
+        V = Float64[];
+    else
+        V = Float64[];
+    end
     for q_i in collect(1:ix.num_instances)
-        maxnn_len = min(KNN, length(ix.nbrs[q_i]));   
+        added_nbrs = 0;
+        len_nbrh_q_i = length(ix.nbrs[q_i]);       
         
-        for nninfo in ix.nbrs[q_i][1:maxnn_len]
-            nn_ix = nninfo[2];
-            push!(J, q_i); #column denoting the current object
-            push!(I, nn_ix); # row denoting the near neighbor
-            push!(V, Int8(1));
+        for nninfo in ix.nbrs[q_i][1:len_nbrh_q_i]
+            nn_sim, nn_ix = nninfo;
+            if nn_sim >= sim_threshold
+                push!(J, q_i); #column denoting the current object
+                push!(I, nn_ix); # row denoting the near neighbor
+                
+                if binarize
+                    push!(V, 1.0);
+                else
+                    push!(V, nn_sim);
+                end
+                
+                added_nbrs += 1;
+            end
+
+            if added_nbrs == KNN                
+                break;
+            end
         end
+        nbrhd_len[q_i] = added_nbrs;
     end
     nnmat = sparse(I,J,V, ix.num_instances, ix.num_instances);
-    # 2nd. SharedNearesNeighbors are computed by the matrix product.
-    snnmat = *(transpose(nnmat),nnmat) / KNN;
+    return nnmat, nbrhd_len;
+end
+
+
+"""
+    get_snnsimilarity(ApproxSimIndex, KNN)
+
+Returns the shared-nn similarity matrix.
+Employs an instance of ApIndexJoin to estimate pairwise distances.
+"""
+function get_snnsimilarity(ix::ApIndexJoin, KNN::Int64; sim_threshold::Float64=-1.0)
+    nnmat, nbrhd_len = get_knnmatrix(ix, KNN, binarize=true, sim_threshold=sim_threshold);# it is required a binary matrix
+    
+    snnmat = *(transpose(nnmat),nnmat);
+    
+    for i in collect(1:size(snnmat,2))
+        for j in snnmat[:,i].nzind
+            if i == j
+                snnmat[j,i] = 0;
+            elseif  nbrhd_len[i] > 0
+                snnmat[j,i] = snnmat[j,i] / nbrhd_len[i];
+            end
+        end
+    end
+    
     return snnmat;
 end
 
 
 
+"""
+    get_snnsimilarity(KNNMatrix, NbrhdsLenght)
+
+Returns the shared-nn similarity matrix.
+Employs a binary K-NearestNeighbor matrix (column based) and the lenght of each point's neighborhood
+"""
+function get_snnsimilarity(KNN::SparseMatrixCSC{Float64,Int64}, nbrhd_len::Array{Int64, 1})    
+    snnmat = *(transpose(KNN), KNN);
+    
+    for i in collect(1:size(snnmat,2))
+        for j in snnmat[:,i].nzind
+            if i == j
+                snnmat[j,i] = 0;
+            elseif  nbrhd_len[i] > 0
+                snnmat[j,i] = snnmat[j,i] / nbrhd_len[i];
+            end
+        end
+    end
+    
+    return snnmat;
+end
+
+
+"""
+    get_snngraph(KNNMatrix, SIMMatrix)
+
+KNNMatrix is a binary matrix, whose columns denote the neighbors of the object represented by the column index.
+Returns an adjacency matrix in which two vertices are connected only if both are in each other neighborhood.
+The weight of the edge that connects each pair of vertices is given by its similarity value.
+"""
+function get_snngraph(KNN::SparseMatrixCSC{Float64,Int64}, SIM::SparseMatrixCSC{Float64,Int64})
+    I = Int64[];
+    J = Int64[];
+    V = Float64[];
+
+    for i in collect(1:size(KNN, 2))
+        for j in eachindex(KNN[:,i].nzind)
+            nnb = KNN[:,i].nzind[j]
+            nnbval = KNN[:,i].nzval[j]
+            if KNN[i,nnb] > 0
+                if SIM[nnb, i] > 0 
+                    push!(J, i); #column denoting the current object
+                    push!(I, nnb); # row denoting the near neighbor
+                    push!(V, SIM[nnb, i] * nnbval)
+                end
+            end
+        end
+    end
+    snn_graph = sparse(I,J,V, size(SIM, 1),size(SIM, 2));
+
+    # ensureing that snn_graph is a symmetric matrix.
+    for i in collect(1:size(snn_graph, 2))
+        for j in eachindex(snn_graph[:,i].nzind)
+            nnb = snn_graph[:,i].nzind[j]
+            snn_graph[i, nnb] = snn_graph[nnb,i]
+        end
+    end
+    
+    return snn_graph;
+end
+
+
+"""
+    get_knngraph(KNNMatrix)
+
+KNNMatrix is a __NON__ binary matrix, whose columns denote the neighbors of the object represented by the column index.
+Returns an adjacency matrix in which two vertices are connected only if both are in each other neighborhood.
+The weight of the edge that connects each pair of vertices is given by its similarity value.
+"""
+function get_knngraph(KNN::SparseMatrixCSC{Float64,Int64})
+    I = Int64[];
+    J = Int64[];
+    V = Float64[];
+
+    for i in collect(1:size(KNN, 2))
+        for j in eachindex(KNN[:,i].nzind)
+            nnb = KNN[:,i].nzind[j]
+            nnbval = KNN[:,i].nzval[j]
+            if KNN[i,nnb] > 0 # both have to be in eachother's neighborhood.
+                push!(J, i); #column denoting the current object
+                push!(I, nnb); # row denoting the near neighbor
+                push!(V, nnbval)
+            end
+        end
+    end
+    snn_graph = sparse(I,J,V, size(KNN, 2),size(KNN, 2));
+
+    # ensureing that snn_graph is a symmetric matrix.
+    for i in collect(1:size(snn_graph, 2))
+        for j in eachindex(snn_graph[:,i].nzind)
+            nnb = snn_graph[:,i].nzind[j]
+            snn_graph[i, nnb] = snn_graph[nnb,i]
+        end
+    end
+    
+    return snn_graph;
+end
 end

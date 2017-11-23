@@ -10,34 +10,51 @@ function generate_partitions(Nnodes::Int64, N::Int64)
     return P
 end
 
+include("/workspace/distributed_clustering/julia/src/dsnn_Worker.jl")
+include("/workspace/distributed_clustering/julia/src/dsnn_SNN.jl")
+include("/workspace/distributed_clustering/julia/src/dsnn_KNN.jl")
+include("/workspace/distributed_clustering/julia/src/dsnn_IO.jl")
+using LightGraphs
+
 function start(results::Dict{String, Any}, 
     inputPath::String, 
     partition::Array{Int64,1}, 
     pct_sample::Float64,
-    similarity::String="cosine", K::Int64=50, KNN::Int64=3,snn_cut_point::Int64=5)    
+    snn_cut_point::Int64,
+    k::Int64,
+    snn_eps::Float64,
+    snn_minpts::Int64
+    )
     
     N = length(partition);
     Nnodes = length(unique(partition));
     samples = Dict{Int64, Array{Int64,1}}()
     worker_result = Dict{Int64, Dict{String, Any}}()
     
+    ###
+    ### STAGE 1
+    ###
+    println("[M] Starting Stage 1 (assignment distribution)");
     @sync for (idx, pid) in enumerate(workers())
         node_id = idx+1;
         worker_assignment = find(x -> x==node_id, partition);
         sort!(worker_assignment)
         @async begin
             worker_result[node_id] = remotecall_fetch( 
-            stage1_start, #function call
+            DSNN_Worker.stage1_start, #function call
             pid,
             worker_assignment,                
             inputPath,
-            pct_sample,            
-            similarity=similarity);
+            pct_sample,
+            k,
+            snn_eps = snn_eps,
+            snn_minpts = snn_minpts
+        );
         end
     end
     
 
-    
+    println("[M] Joining worker's results of Stage 1");
     # Join sampled points
     overall_sample = Array{Int64,1}(); # contains real instance ids
     overall_sample_corepoints = Array{Int64,1}(); # contains real instance ids
@@ -58,9 +75,9 @@ function start(results::Dict{String, Any},
     sort!(overall_sample_corepoints);
     sort!(sampled_data);
     
-    results["centralized_worker_corepoints"] = overall_sample_corepoints; #Only corepoint data retrieved from the workers
-    results["centralized_worker_samples"] = overall_sample; #Only noncorepoint data retrieved from the workers
-    results["centralized_worker_points"] = sampled_data; #All the retrieved data from the workers
+    results["stage1_corepoints"] = overall_sample_corepoints; #Only corepoint data retrieved from the workers
+    results["stage1_sampled"] = overall_sample; #Only noncorepoint data retrieved from the workers
+    #results["centralized_worker_points"] = sampled_data; #All the retrieved data from the workers
     
     #=
     # Code block that gets worker-id for each gathered corepoint.
@@ -77,55 +94,55 @@ function start(results::Dict{String, Any},
     results["centralized_worker_corepoints_origin"] = overall_sample_workers
     =#
     
-    println("[M] Joining worker's corepoints (",length(overall_sample_corepoints),") and worker's samples (",length(overall_sample),")") 
+    println("[M] Corepoints (",length(overall_sample_corepoints),") and Samples (",length(overall_sample),")") 
 
-    ### Comment unless premature output is needed (DEBUG PURPOSES)
-    #return overall_sample
-    
-    ### UNDER TESTING
-    #### THIS PART IS NOT WORKING...MAYBE FINDING CLUSTERS FROM SAMPLED OR COREPOINTS BASED ON SNN IS NOT A GOOD IDEA!
-    #println("Overall sample size:",size(overall_sample))
-    M, dim = get_header_from_input_file(inputPath);
-    D = zeros(dim,length(sampled_data));
-    get_slice_from_input_file(D, inputPath, sampled_data)
-    
-    
-    #### ALTERNATIVE
-    num_points = size(D,2);
-    cent_data = D;
 
-    Snn_cent = zeros(Float64, num_points, num_points);
-    S_cent = zeros(Float64, num_points, num_points);
-    compute_similarities(cent_data, K, Snn_cent, S_cent, similarity=similarity);
 
-    println("[M] Creating SNN graph with data retrieved from workers...(cut_point set to ",snn_cut_point,")")
-    G = Graph(num_points)
-    #G_weights = Float64[];
-    for i=collect(1:num_points-1)
-        for j=collect(i+1:num_points)
-            #push!(G_weights, Snn_cent[i,j])
-            if Snn_cent[i,j] > snn_cut_point
-                if ~add_edge!(G, i, j)
-                    println("[M] Error: Cannot add edge")
-                end
-            end
-        end
+    ###
+    ### STAGE 2
+    ###
+    
+    d = DSNN_IO.sparseMatFromFile(inputPath, assigned_instances=sampled_data, l2normalize=true);
+    num_points = size(d, 2);
+    k_ap = 200; epsilon = 0.001;
+    apix = DSNN_KNN.initialAppGraph(d, k_ap, epsilon, k_ap*2);
+    DSNN_KNN.improve_graph!(apix, d, k_ap, epsilon, k_ap*2);
+    
+    knnmat_ap, nbrhd_len = DSNN_KNN.get_knnmatrix(apix, k, binarize=true)#, sim_threshold = 0.15);
+    snnmat_ap = DSNN_KNN.get_snnsimilarity(knnmat_ap, nbrhd_len)
+    snn_graph = DSNN_KNN.get_snngraph(knnmat_ap, snnmat_ap);
+
+    assert(num_points == size(snn_graph,2));
+    
+    println("[M] Creating SNN graph with data retrieved from workers...")
+    #println("[M] Creating SNN graph with data retrieved from workers...(cut_point set to ",snn_cut_point,")")
+    G = LightGraphs.Graph(num_points)
+    for i in collect(1:num_points)
+       for j in snn_graph[:, i].nzind
+           if j > i 
+               # maybe a threshold based on snn_graph[j,i] could be used !
+               if ~LightGraphs.add_edge!(G, i, j)
+                   println("[M] Error: Cannot add edge between vertices ",i," and ",j)
+               end
+           end
+       end
     end
-    vLN, conv_history = label_propagation(G);
+    vLN, conv_history = LightGraphs.label_propagation(G);
     # getting the corepoint labels
     # find positions in sampled_data that correpond to the gathered corepoints
-    println("[M] Number of groups detected with retrieved data:",length(unique(vLN)))
+    println("[M] Number of groups detected with retrieved data:",length(unique(vLN)));
     corepoint_labels = vLN[find(x->x in overall_sample_corepoints, sampled_data)];
+    
     #assert(length(corepoint_labels) == length(overall_sample_corepoints))
     
-    results["sampled_data_snn"] = Snn_cent;
+    results["stage1_graph"] = snn_graph;
     
     results["centralized_worker_corepoints_labels"] = corepoint_labels;
     
-    println("[M] Retransmitting overall corepoints (centrally computed)...") 
+    println("[M] Retransmitting overall corepoints (Stage 2)...") 
     
     # Send the labeled core-points, and the assignments to each worker.
-    final_result = Dict{Int64, Array{Int64,1}}()    
+    final_result = Dict{Int64, Dict{String, Array{Int64,1}}}()    
     # Each worker will label the non-core points by using a KNN-core-point voting scheme.    
     @sync for (idx, pid) in enumerate(workers())
         #println(idx,' ', pid)
@@ -134,32 +151,33 @@ function start(results::Dict{String, Any},
         sort!(worker_assignment)
         @async begin
             final_result[node_id] = remotecall_fetch( 
-            local_work_final, #function call
+            DSNN_Worker.stage2_start, #function call
             pid,
             worker_assignment,
             overall_sample_corepoints,
             corepoint_labels,
             inputPath,
-            k = worker_result[node_id]["k"],
-            KNN = KNN,
-            similarity=similarity);
+            worker_result[node_id]["k"]);
         end
     end
     
     
     
-    println("[M] Worker's assignments re-labeled with identified corepoints.") 
+    println("[M] Joining Worker's results of Stage 2.") 
 
     
     overall_labels = zeros(Int64, N);
-    for i=keys(final_result)
-        worker_assignment = find(x -> x==i, partition);
-        @assert length(worker_assignment) == length(final_result[i])
-        overall_labels[worker_assignment] = final_result[i];
+    for worker_id=keys(final_result)
+        # final_result[worker_id] is a Dict with the assigned instances to that worker and the corresponding labels!
+        #worker_assignment = find(x -> x==worker_id, partition);
+        #@assert length(worker_assignment) == length(final_result[i])
+        worker_assignment = final_result[worker_id]["assigned_instances"];
+        worker_assignment_labels = final_result[worker_id]["labels"];
+        overall_labels[worker_assignment] = worker_assignment_labels;
     end
         
-    println("[M] Joining worker's final labelings...") 
+    println("[M] Generating worker's final labelings...") 
     #results["corepoints"] = overall_sample[corepoints_ix];
-    results["assignments"] = overall_labels;
+    results["stage2_labels"] = overall_labels;
 end
 end
