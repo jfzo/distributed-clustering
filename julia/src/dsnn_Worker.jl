@@ -9,6 +9,7 @@ function stage1_start(assigned_instances::Array{Int64,1},
     inputPath::String, 
     pct_sample::Float64,
     k::Int64;
+    k_ap::Int64 = 200,
     snn_eps::Float64 = 0.4,
     snn_minpts::Int64 = 10
     )
@@ -24,7 +25,8 @@ function stage1_start(assigned_instances::Array{Int64,1},
 
     d = DSNN_IO.sparseMatFromFile(inputPath, assigned_instances=assigned_instances, l2normalize=true);
     
-    k_ap = 200; epsilon = 0.01;
+    #k_ap = 200; 
+    epsilon = 0.01;
     apix = DSNN_KNN.initialAppGraph(d, k_ap, epsilon, k_ap*2);
     DSNN_KNN.improve_graph!(apix, d, k_ap, epsilon, k_ap*2);
     
@@ -32,7 +34,7 @@ function stage1_start(assigned_instances::Array{Int64,1},
     snnmat_ap = DSNN_KNN.get_snnsimilarity(knnmat_ap, nbrhd_len)
     snn_graph = DSNN_KNN.get_snngraph(knnmat_ap, snnmat_ap);
 
-    
+    println("[W] executing snn clustering with eps:",snn_eps," and minpts:", snn_minpts)
     cl_results = DSNN_SNN.snn_clustering(snn_eps, snn_minpts, snn_graph);
 
     cl_labels = cl_results["labels"];# Matrix containing length(assigned_instances) x num_clusters_found

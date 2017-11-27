@@ -2,14 +2,13 @@ module DSNN_IO
 
 
 """
-    sparseMatFromFile(inputPath)
+    sparseMatFromFile(inputPath, [assigned_instances], [objects_as_rows], [l2normalize])
 
-Builds a sparse matrix from the content stored at _inputPath_. 
-* Filters the rows indicated in the array `instance_array`. If `instance_array` is missing all the rows are 
+Builds a sparse matrix from the content stored at `inputPath`. 
+* Filters the rows indicated in the array `assigned_instances`. If `assigned_instances` is missing all the rows are 
 included. 
-The resulting array contains the columns of the file in its rows.
-If `objects_as_rows` (set as false by default) is set to true, then the resulting matrix contains
-objects as rows and features as columns.
+* The resulting matrix contains the columns of the file in its rows unless `objects_as_rows` is set to true.
+* The matrix is built as an exact version of the file, but if `l2normalize` is set, then every object row is normalized.
 
 # Examples
 ```julia-repl

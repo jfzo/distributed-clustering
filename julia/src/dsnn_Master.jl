@@ -20,10 +20,8 @@ function start(results::Dict{String, Any},
     inputPath::String, 
     partition::Array{Int64,1}, 
     pct_sample::Float64,
-    snn_cut_point::Int64,
-    k::Int64,
-    snn_eps::Float64,
-    snn_minpts::Int64
+    snn_cut_point::Int64;
+    worker_params::Dict{String, Any}=Dict{String,Any}("k"=>100, "snn_eps"=>0.5, "snn_minpts"=>5, "k_appindex"=>200)
     )
     
     N = length(partition);
@@ -34,7 +32,7 @@ function start(results::Dict{String, Any},
     ###
     ### STAGE 1
     ###
-    println("[M] Starting Stage 1 (assignment distribution)");
+    println("[M] Starting Stage 1 (assignment distribution and corepoint identification)");
     @sync for (idx, pid) in enumerate(workers())
         node_id = idx+1;
         worker_assignment = find(x -> x==node_id, partition);
@@ -46,9 +44,10 @@ function start(results::Dict{String, Any},
             worker_assignment,                
             inputPath,
             pct_sample,
-            k,
-            snn_eps = snn_eps,
-            snn_minpts = snn_minpts
+            worker_params["k"],
+            k_ap = worker_params["k_appindex"],
+            snn_eps = worker_params["snn_eps"],
+            snn_minpts = worker_params["snn_minpts"]
         );
         end
     end
@@ -68,7 +67,7 @@ function start(results::Dict{String, Any},
             
             sampled_data = vcat(sampled_data, worker_result[i]["sampled_points"]);
             sampled_data = vcat(sampled_data, worker_result[i]["corepoints"]);
-            
+            println("Amount of noisy data points detected by worker ",i,":",length(worker_result[i]["noise_points"]));
         end        
     end
     sort!(overall_sample);    
@@ -104,11 +103,12 @@ function start(results::Dict{String, Any},
     
     d = DSNN_IO.sparseMatFromFile(inputPath, assigned_instances=sampled_data, l2normalize=true);
     num_points = size(d, 2);
-    k_ap = 200; epsilon = 0.001;
+    k_ap = worker_params["k_appindex"]; epsilon = 0.001;#epsilon is set always to this value
     apix = DSNN_KNN.initialAppGraph(d, k_ap, epsilon, k_ap*2);
     DSNN_KNN.improve_graph!(apix, d, k_ap, epsilon, k_ap*2);
     
-    knnmat_ap, nbrhd_len = DSNN_KNN.get_knnmatrix(apix, k, binarize=true)#, sim_threshold = 0.15);
+    k = worker_params["k"];
+    knnmat_ap, nbrhd_len = DSNN_KNN.get_knnmatrix(apix, k, binarize=true); #, sim_threshold = 0.15);
     snnmat_ap = DSNN_KNN.get_snnsimilarity(knnmat_ap, nbrhd_len)
     snn_graph = DSNN_KNN.get_snngraph(knnmat_ap, snnmat_ap);
 

@@ -161,7 +161,23 @@ function fill_index!(ix::ApIndexJoin, M::SparseMatrixCSC{Float64, Int64}, k::Int
         # RANK nnz features by weight
         v = M[:, q];
         #feat_pq = Collections.PriorityQueue(Int64, Float64, Base.Order.Reverse); # Forward implies lesser to higher        
-        feat_pq = DataStructures.PriorityQueue(Int64, Float64, Base.Order.Reverse); # Forward implies lesser to higher        
+        #feat_pq = DataStructures.PriorityQueue(Int64, Float64, Base.Order.Reverse); # Forward implies lesser to higher        
+        feat_pq = DataStructures.PriorityQueue{Int64, Float64}(Base.Order.Reverse); # higher to lower sims
+        #=
+        Example:
+            feat_pq[5] = 0.5;feat_pq[1] = 0.1;feat_pq[6] = 0.6;feat_pq[7] = 0.7;feat_pq[2] = 0.2;
+            while length(feat_pq) > 0
+                j, q_j = DataStructures.peek(feat_pq);
+                DataStructures.dequeue!(feat_pq);    
+                println(j,"->",q_j)    
+            end
+        output:
+            7->0.7
+            6->0.6
+            5->0.5
+            2->0.2
+            1->0.1
+        =#
         for i in v.nzind
             feat_pq[i] = v[i]
         end
@@ -236,7 +252,8 @@ function improve_graph!(ix::ApIndexJoin, M::SparseMatrixCSC{Float64, Int64}, k::
         T = zeros(Bool, nobjects);
         inCList = zeros(Bool, nobjects);
         #Q = Collections.PriorityQueue(Int64, Float64, Base.Order.Reverse)
-        Q = DataStructures.PriorityQueue(Int64, Float64, Base.Order.Reverse);
+        #Q = DataStructures.PriorityQueue(Int64, Float64, Base.Order.Reverse);
+        Q = DataStructures.PriorityQueue{Int64, Float64}(Base.Order.Reverse);
         l = 0;
         for (s_cq, dc) in I[q] # tagging all points whos nbrhds contain point q
             T[dc] = true;
@@ -433,7 +450,7 @@ function get_snngraph(KNN::SparseMatrixCSC{Float64,Int64}, SIM::SparseMatrixCSC{
                 if SIM[nnb, i] > 0 
                     push!(J, i); #column denoting the current object
                     push!(I, nnb); # row denoting the near neighbor
-                    push!(V, SIM[nnb, i] * nnbval)
+                    push!(V, SIM[nnb, i] * nnbval);
                 end
             end
         end
@@ -443,8 +460,8 @@ function get_snngraph(KNN::SparseMatrixCSC{Float64,Int64}, SIM::SparseMatrixCSC{
     # ensureing that snn_graph is a symmetric matrix.
     for i in collect(1:size(snn_graph, 2))
         for j in eachindex(snn_graph[:,i].nzind)
-            nnb = snn_graph[:,i].nzind[j]
-            snn_graph[i, nnb] = snn_graph[nnb,i]
+            nnb = snn_graph[:,i].nzind[j];
+            snn_graph[i, nnb] = snn_graph[nnb,i];
         end
     end
     
