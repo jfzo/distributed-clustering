@@ -1,5 +1,27 @@
 module DSNN_IO
 
+"""
+    save_data_as_cluto(DATA, path)
+
+This function assumes that the array is in column-order (columns contain the examples)
+"""
+function sparseMatToFile(D::SparseMatrixCSC{Float64,Int64}, path::String)    
+    fout = open(path,"w")
+
+    nnz_vals = nnz(D)
+    nrows, ncols = size(D);
+    write(fout, @sprintf("%d %d %d\n",ncols, nrows, nnz_vals)); #rememeber: column order
+    for c in collect(1:ncols)
+        c_indices = D[:,c].nzind;
+        c_values = D[:,c].nzval;
+        for j in eachindex(c_indices)
+            write(fout, @sprintf("%d %0.7f ",c_indices[j], c_values[j]) );
+        end
+        write(fout, "\n");
+    end
+    
+    close(fout)
+end
 
 """
     sparseMatFromFile(inputPath, [assigned_instances], [objects_as_rows], [l2normalize])
@@ -74,6 +96,33 @@ function sparseMatFromFile(inputPath::String; assigned_instances::Array{Int64,1}
     end
 end
 
+function normalize_matrix!(M::SparseMatrixCSC{Float64, Int64})
+    n = size(M,2);
+    for q=collect(1:n)
+        norm_v = norm(M[:,q]);
+        for qi in M[:,q].nzind
+            M[qi,q] = M[qi,q] / norm_v;
+        end
+    end
+end
+
+function normalize_matrix(M::SparseMatrixCSC{Float64, Int64})
+    I = Int64[];
+    J = Int64[];
+    V = Float64[];
+    
+    n = size(M,2);
+    for q=collect(1:n)
+        norm_v = norm(M[:,q]);
+        for qi in eachindex(M[:,q].nzind)
+            push!(J, q);
+            push!(I, M[:,q].nzind[qi]);
+            push!(V, M[:,q].nzval[qi] / norm_v);
+        end
+    end
+    nrmM = sparse(I,J,V, size(M,1), size(M,2));
+    return nrmM;
+end
 
 using HDF5
 

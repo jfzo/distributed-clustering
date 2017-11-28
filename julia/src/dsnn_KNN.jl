@@ -1,5 +1,10 @@
 module DSNN_KNN
 
+#####################################################################
+#### CANN Algorithm implementation   ################################
+#### "Cosine Approximate Nearest Neighbors", Anastasiu, D. (2017) ###
+#####################################################################
+
 type ApIndexJoin
     idx :: Array{Array{Tuple{Float64,Int64}}}; # feature_i -> [(value_of_feature_i, doc_id)...]
     num_features :: Int64;
@@ -23,36 +28,28 @@ function init_structure!(n_instances::Int64, n_features::Int64, o::ApIndexJoin)
     o.H = Dict{Int64, Dict{Int64, Float64}}();
 end
 
-function suffix_norm(o::SparseVector{Float64,Int64}, p)
-    """
-    returns the p-suffix norm. This is the norm of the vector by only considering
-    the values of its (|o| - p) trailing features.
-    """
-    #assert( p < length(o))
-    #return sqrt(sum(o[(p+1):end].^2))
-    #= Esta optimiz. funciona lento !!
-    if p > o.nzind[end]
-        return 0.0
-    else
-        # k is the next nnz feature higher than p
-        k = o.nzind[find(x-> x > p, o.nzind)[1]];
-        o_nnz_part = o[o.nzind[k:end]];
-        return sqrt(dot(o_nnz_part, o_nnz_part))
-    end
-    =#
 
-    #return sqrt(dot(o[(p+1):end], o[(p+1):end]))
+"""
+    suffix_norm(sparse_vector, suffix_index)
+
+returns the p-suffix norm. This is the norm of the vector by only considering
+the values of its (|o| - p) trailing features.
+"""
+function suffix_norm(o::SparseVector{Float64,Int64}, p)
     return norm(o[(p+1):end])
 end
 
+
+"""
+    build_index!(feature_index, sparse_data_matrix, epsilon, [sort_lists])
+
+Create the partial inverted index.
+´ix´ is an initiaized Approximate Index .
+´M´ is a sparse matrix containing the UNIT-NORM data vectors. Objects in columns and features in rows.
+´epsilon´ is the similarity threshold.
+´sort_lists´ is a boolean parameter indicating if the feature lists will be sorted in non-ascending order (default:false).
+"""
 function build_index!(ix::ApIndexJoin, M::SparseMatrixCSC{Float64, Int64}, epsilon::Float64; sort_lists::Bool=false)
-    """
-    Create the partial inverted index.
-    ´ix´ is an initiaized Approximate Index .
-    ´M´ is a sparse matrix containing the UNIT-NORM data vectors. Objects in columns and features in rows.
-    ´epsilon´ is the similarity threshold.
-    ´sort_lists´ is a boolean parameter indicating if the feature lists will be sorted in non-ascending order.
-    """
     nfeatures, nobjects = size(M);
 
     """ columns are already normalized-
@@ -329,6 +326,10 @@ function initialAppGraph(M::SparseMatrixCSC{Float64,Int64}, k::Int64, epsilon::F
 end
 
 
+##################################
+##   END OF THE IMPLEMENTATION  ##
+##################################
+
 """
     get_knnmatrix(appIndex, KNN, [binarize], [sim_threshold])
 
@@ -405,6 +406,33 @@ function get_snnsimilarity(ix::ApIndexJoin, KNN::Int64; sim_threshold::Float64=-
     return snnmat;
 end
 
+function get_snnsimilarity(D::SparseMatrixCSC{Float64,Int64}, knn::Int64; min_threshold::Float64=0.0)
+    knnmat = get_knn(D, knn);
+    snnmat = (transpose(knnmat) * knnmat)./knn; # SNN similarity matrix with values between 0 and 1
+
+    if min_threshold == 0
+        return snnmat;
+    end
+    
+    I = Int64[];
+    J = Int64[];
+    V = Float64[];
+
+
+    for i in collect(1:size(snnmat,2))
+        for j in eachindex(snnmat[:,i].nzind)            
+            if snnmat[:,i].nzval[j] > min_threshold                
+                push!(I, snnmat[:,i].nzind[j]);
+                push!(J, i);
+                push!(V, snnmat[:,i].nzval[j]);
+            end
+        end
+    end
+    
+    filteredsnn = sparse(I,J,V, size(snnmat,1), size(snnmat,2));
+    return filteredsnn;
+    
+end
 
 
 """
@@ -435,7 +463,9 @@ end
 
 KNNMatrix is a binary matrix, whose columns denote the neighbors of the object represented by the column index.
 Returns an adjacency matrix in which two vertices are connected only if both are in each other neighborhood.
-The weight of the edge that connects each pair of vertices is given by its similarity value.
+The weight of the edge that connects each pair of vertices is given by its similarity value registered in SIM matrix.
+This two-parameter version of this function allows to employ a different similarity matrix or to operate when the
+KNN matrix contains only 1's or 0's.
 """
 function get_snngraph(KNN::SparseMatrixCSC{Float64,Int64}, SIM::SparseMatrixCSC{Float64,Int64})
     I = Int64[];
@@ -446,11 +476,11 @@ function get_snngraph(KNN::SparseMatrixCSC{Float64,Int64}, SIM::SparseMatrixCSC{
         for j in eachindex(KNN[:,i].nzind)
             nnb = KNN[:,i].nzind[j]
             nnbval = KNN[:,i].nzval[j]
-            if KNN[i,nnb] > 0
+            if KNN[i,nnb] > 0 # checks if both have eachother in their neighbor lists.
                 if SIM[nnb, i] > 0 
                     push!(J, i); #column denoting the current object
                     push!(I, nnb); # row denoting the near neighbor
-                    push!(V, SIM[nnb, i] * nnbval);
+                    push!(V, SIM[nnb, i]);
                 end
             end
         end
@@ -468,6 +498,42 @@ function get_snngraph(KNN::SparseMatrixCSC{Float64,Int64}, SIM::SparseMatrixCSC{
     return snn_graph;
 end
 
+
+"""
+    get_snngraph(KNNMatrix)
+
+KNNMatrix is a Non binary matrix, whose columns denote the neighbors of the object represented by the column index.
+Returns an adjacency matrix in which two vertices are connected only if both are in each other neighborhood.
+The weight of the edge that connects each pair of vertices is given by its similarity value registered in KNN.
+"""
+function get_snngraph(KNN::SparseMatrixCSC{Float64,Int64})
+    I = Int64[];
+    J = Int64[];
+    V = Float64[];
+
+    for i in collect(1:size(KNN, 2))
+        for j in eachindex(KNN[:,i].nzind)
+            nnb = KNN[:,i].nzind[j]
+            nnbval = KNN[:,i].nzval[j]
+            if KNN[i,nnb] > 0 # checks if both have eachother in their neighbor lists.
+                push!(J, i); #column denoting the current object
+                push!(I, nnb); # row denoting the near neighbor
+                push!(V, nnbval);
+            end
+        end
+    end
+    snn_graph = sparse(I,J,V, size(KNN, 2),size(KNN, 2));
+
+    # ensureing that snn_graph is a symmetric matrix.
+    for i in collect(1:size(snn_graph, 2))
+        for j in eachindex(snn_graph[:,i].nzind)
+            nnb = snn_graph[:,i].nzind[j];
+            snn_graph[i, nnb] = snn_graph[nnb,i];
+        end
+    end
+    
+    return snn_graph;
+end
 
 """
     get_knngraph(KNNMatrix)
@@ -503,5 +569,27 @@ function get_knngraph(KNN::SparseMatrixCSC{Float64,Int64})
     end
     
     return snn_graph;
+end
+
+using DSNN_IO
+
+
+"""
+    get_knn(data, knn, [file_prefix="wk"],[l2knng_path])
+
+Uses the L2KNNG algorithm to obtain the k-nearest neighbros for each point.
+l2knng_path parameter set to '/workspace/l2knng/knng' by default contains the full path to the program.
+Warning: This function performs a System call in order to execute the L2Knng original implementation.
+"""
+function get_knn(data::SparseMatrixCSC, knn::Int64; file_prefix::String="wk", l2knng_path::String="/workspace/l2knng/knng")
+    #generate the input file
+    in_file = @sprintf("/tmp/%s_%s.in.clu",file_prefix, Dates.format(now(), "HH:MM_s"));
+    DSNN_IO.sparseMatToFile(data, in_file);
+    
+    out_file = @sprintf("/tmp/%s_%s.out.clu",file_prefix, Dates.format(now(), "HH:MM_s"));
+    run(pipeline(`$l2knng_path -fmtWrite=clu -norm=2 -k=$knn l2knn $in_file $out_file`, stdout=DevNull, stderr=DevNull));
+    
+    knn = DSNN_IO.sparseMatFromFile(out_file);
+    return knn;
 end
 end
