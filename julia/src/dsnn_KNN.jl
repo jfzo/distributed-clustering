@@ -406,33 +406,7 @@ function get_snnsimilarity(ix::ApIndexJoin, KNN::Int64; sim_threshold::Float64=-
     return snnmat;
 end
 
-function get_snnsimilarity(D::SparseMatrixCSC{Float64,Int64}, knn::Int64; min_threshold::Float64=0.0)
-    knnmat = get_knn(D, knn);
-    snnmat = (transpose(knnmat) * knnmat)./knn; # SNN similarity matrix with values between 0 and 1
 
-    if min_threshold == 0
-        return snnmat;
-    end
-    
-    I = Int64[];
-    J = Int64[];
-    V = Float64[];
-
-
-    for i in collect(1:size(snnmat,2))
-        for j in eachindex(snnmat[:,i].nzind)            
-            if snnmat[:,i].nzval[j] > min_threshold                
-                push!(I, snnmat[:,i].nzind[j]);
-                push!(J, i);
-                push!(V, snnmat[:,i].nzval[j]);
-            end
-        end
-    end
-    
-    filteredsnn = sparse(I,J,V, size(snnmat,1), size(snnmat,2));
-    return filteredsnn;
-    
-end
 
 
 """
@@ -591,5 +565,33 @@ function get_knn(data::SparseMatrixCSC, knn::Int64; file_prefix::String="wk", l2
     
     knn = DSNN_IO.sparseMatFromFile(out_file);
     return knn;
+end
+
+function get_snnsimilarity(D::SparseMatrixCSC{Float64,Int64}, knn::Int64; min_threshold::Float64=0.0, l2knng_path::String="/workspace/l2knng/knng")
+    knnmat = get_knn(D, knn, l2knng_path=l2knng_path);
+    snnmat = (transpose(knnmat) * knnmat)./knn; # SNN similarity matrix with values between 0 and 1
+
+    if min_threshold == 0
+        return snnmat, knnmat;
+    end
+    
+    I = Int64[];
+    J = Int64[];
+    V = Float64[];
+
+
+    for i in collect(1:size(snnmat,2))
+        for j in eachindex(snnmat[:,i].nzind)            
+            if snnmat[:,i].nzval[j] > min_threshold                
+                push!(I, snnmat[:,i].nzind[j]);
+                push!(J, i);
+                push!(V, snnmat[:,i].nzval[j]);
+            end
+        end
+    end
+    
+    filteredsnn = sparse(I,J,V, size(snnmat,1), size(snnmat,2));
+    return filteredsnn, knnmat;
+    
 end
 end

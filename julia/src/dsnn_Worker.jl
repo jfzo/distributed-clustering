@@ -26,13 +26,16 @@ function stage1_start(assigned_instances::Array{Int64,1},
     d = DSNN_IO.sparseMatFromFile(inputPath, assigned_instances=assigned_instances, l2normalize=true);
     
     #k_ap = 200; 
-    epsilon = 0.01;
-    apix = DSNN_KNN.initialAppGraph(d, k_ap, epsilon, k_ap*2);
-    DSNN_KNN.improve_graph!(apix, d, k_ap, epsilon, k_ap*2);
+    #epsilon = 0.01;
+    #apix = DSNN_KNN.initialAppGraph(d, k_ap, epsilon, k_ap*2);
+    #DSNN_KNN.improve_graph!(apix, d, k_ap, epsilon, k_ap*2);
     
-    knnmat_ap, nbrhd_len = DSNN_KNN.get_knnmatrix(apix, k, binarize=true)#, sim_threshold = 0.15);
-    snnmat_ap = DSNN_KNN.get_snnsimilarity(knnmat_ap, nbrhd_len)
-    snn_graph = DSNN_KNN.get_snngraph(knnmat_ap, snnmat_ap);
+    #knnmat_ap, nbrhd_len = DSNN_KNN.get_knnmatrix(apix, k, binarize=true)#, sim_threshold = 0.15);
+    #snnmat_ap = DSNN_KNN.get_snnsimilarity(knnmat_ap, nbrhd_len)
+    #snn_graph = DSNN_KNN.get_snngraph(knnmat_ap, snnmat_ap);
+    
+    snnmat, knnmat = DSNN_KNN.get_snnsimilarity(d, k, l2knng_path="/workspace/l2knng/build/knng");
+    snn_graph = DSNN_KNN.get_snngraph(knnmat, snnmat);
 
     println("[W] executing snn clustering with eps:",snn_eps," and minpts:", snn_minpts)
     cl_results = DSNN_SNN.snn_clustering(snn_eps, snn_minpts, snn_graph);
@@ -109,15 +112,19 @@ function stage2_start(assigned_instances::Array{Int64,1},
 
     d = DSNN_IO.sparseMatFromFile(inputPath, assigned_instances=instances, l2normalize=true);
 
-    k_ap = 200; epsilon = 0.01;
-    apix = DSNN_KNN.initialAppGraph(d, k_ap, epsilon, k_ap*2);
-    DSNN_KNN.improve_graph!(apix, d, k_ap, epsilon, k_ap*2);
+    #k_ap = 200; epsilon = 0.01;
+    #apix = DSNN_KNN.initialAppGraph(d, k_ap, epsilon, k_ap*2);
+    #DSNN_KNN.improve_graph!(apix, d, k_ap, epsilon, k_ap*2);
     
-    knnmat_ap, nbrhd_len = DSNN_KNN.get_knnmatrix(apix, k, binarize=true)#, sim_threshold = 0.15);
-    snnmat_ap = DSNN_KNN.get_snnsimilarity(knnmat_ap, nbrhd_len)
-    snn_graph = DSNN_KNN.get_snngraph(knnmat_ap, snnmat_ap); # adjacency matrix in which two vertices are connected only if both are in each other neighborhood
+    #knnmat_ap, nbrhd_len = DSNN_KNN.get_knnmatrix(apix, k, binarize=true)#, sim_threshold = 0.15);
+    #snnmat_ap = DSNN_KNN.get_snnsimilarity(knnmat_ap, nbrhd_len)
+    #snn_graph = DSNN_KNN.get_snngraph(knnmat_ap, snnmat_ap); # adjacency matrix in which two vertices are connected only if both are in each other neighborhood
     #snn_graph[:, cp_in_data] denote all the columns containing sim values between corepoints and the remaining points.
 
+    snnmat, knnmat = DSNN_KNN.get_snnsimilarity(d, k, l2knng_path="/workspace/l2knng/build/knng");
+    snn_graph = DSNN_KNN.get_snngraph(knnmat, snnmat);
+
+    
     nrst_cp = Dict{Int64, Tuple{Int64, Float64}}();
     # Strategy followed to label each noncore data point:
     # Traverse each corepoint column and assign its label to the nzind that are not corepoints

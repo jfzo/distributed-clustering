@@ -103,15 +103,19 @@ function start(results::Dict{String, Any},
     
     d = DSNN_IO.sparseMatFromFile(inputPath, assigned_instances=sampled_data, l2normalize=true);
     num_points = size(d, 2);
-    k_ap = worker_params["k_appindex"]; epsilon = 0.001;#epsilon is set always to this value
-    apix = DSNN_KNN.initialAppGraph(d, k_ap, epsilon, k_ap*2);
-    DSNN_KNN.improve_graph!(apix, d, k_ap, epsilon, k_ap*2);
+    
+    #k_ap = worker_params["k_appindex"]; epsilon = 0.001;#epsilon is set always to this value
+    #apix = DSNN_KNN.initialAppGraph(d, k_ap, epsilon, k_ap*2);
+    #DSNN_KNN.improve_graph!(apix, d, k_ap, epsilon, k_ap*2);
     
     k = worker_params["k"];
-    knnmat_ap, nbrhd_len = DSNN_KNN.get_knnmatrix(apix, k, binarize=true); #, sim_threshold = 0.15);
-    snnmat_ap = DSNN_KNN.get_snnsimilarity(knnmat_ap, nbrhd_len)
-    snn_graph = DSNN_KNN.get_snngraph(knnmat_ap, snnmat_ap);
+    #knnmat_ap, nbrhd_len = DSNN_KNN.get_knnmatrix(apix, k, binarize=true); #, sim_threshold = 0.15);
+    #snnmat_ap = DSNN_KNN.get_snnsimilarity(knnmat_ap, nbrhd_len)
+    #snn_graph = DSNN_KNN.get_snngraph(knnmat_ap, snnmat_ap);
 
+    snnmat, knnmat = DSNN_KNN.get_snnsimilarity(d, k, l2knng_path="/workspace/l2knng/build/knng");
+    snn_graph = DSNN_KNN.get_snngraph(knnmat, snnmat);
+    
     assert(num_points == size(snn_graph,2));
     
     println("[M] Creating SNN graph with data retrieved from workers...")
