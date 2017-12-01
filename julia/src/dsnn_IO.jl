@@ -1,5 +1,52 @@
 module DSNN_IO
 
+
+"""
+    read_configuration(inputPath)
+
+Reads the configuration file and dumps it into a Dictionary.
+"""
+function read_configuration(inputPath::String)
+    config = Dict{String, Any}();
+    f = open(inputPath);
+    for ln in eachline(f)
+        if startswith(ln, "#") || length(ln) < 3
+            continue;
+        end
+        name_type, value = split(ln, "=");
+        name, ntype = split(name_type, ":");
+        value = strip(value);# in case it contains a space at the after the '='
+        # available types are: str (default), int, float, bool (lists in the future)
+        if ntype == "str"
+            value = convert(String, value);
+        elseif ntype == "int"
+            value = parse(Int64, value);
+        elseif ntype == "float"
+            value = parse(Float64, value);
+        elseif ntype == "bool"
+            value = parse(Bool, value);
+        elseif ntype == "int_list"
+            value = map(x->parse(Int64,x), split(value, ","));
+        elseif ntype == "float_list"
+            value = map(x->parse(Float64,x), split(value, ","));
+        elseif ntype == "str_list"
+            value = map(x->strip(x), split(value, ","));
+            value = convert(Array{String,1}, value);
+        end
+        config[name] = value;
+    end
+    close(f);
+    return config;
+end
+
+function get_dimensions_from_input_file(inputPath::String)
+    f = open(inputPath);
+    n, d, nnv = map(x->parse(Int64,x), split(readline(f)));
+    close(f);
+    return n, d
+end
+
+
 """
     save_data_as_cluto(DATA, path)
 

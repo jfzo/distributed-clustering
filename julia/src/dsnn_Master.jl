@@ -14,20 +14,21 @@ include("/workspace/distributed_clustering/julia/src/dsnn_Worker.jl")
 include("/workspace/distributed_clustering/julia/src/dsnn_SNN.jl")
 include("/workspace/distributed_clustering/julia/src/dsnn_KNN.jl")
 include("/workspace/distributed_clustering/julia/src/dsnn_IO.jl")
-using LightGraphs
+#using LightGraphs
+using Graphs
 
 function start(results::Dict{String, Any}, 
     inputPath::String, 
     partition::Array{Int64,1}, 
-    pct_sample::Float64,
-    snn_cut_point::Int64;
-    worker_params::Dict{String, Any}=Dict{String,Any}("k"=>100, "snn_eps"=>0.5, "snn_minpts"=>5, "k_appindex"=>200)
+    config_params::Dict{String, Any}
     )
     
     N = length(partition);
     Nnodes = length(unique(partition));
     samples = Dict{Int64, Array{Int64,1}}()
     worker_result = Dict{Int64, Dict{String, Any}}()
+
+    knn = config_params["worker.knn"];
     
     ###
     ### STAGE 1
@@ -38,21 +39,17 @@ function start(results::Dict{String, Any},
         worker_assignment = find(x -> x==node_id, partition);
         sort!(worker_assignment)
         @async begin
-            worker_result[node_id] = remotecall_fetch( 
+            worker_result[node_id] = remotecall_fetch(
             DSNN_Worker.stage1_start, #function call
             pid,
             worker_assignment,                
             inputPath,
-            pct_sample,
-            worker_params["k"],
-            k_ap = worker_params["k_appindex"],
-            snn_eps = worker_params["snn_eps"],
-            snn_minpts = worker_params["snn_minpts"]
+            config_params
         );
         end
     end
     
-
+    
     println("[M] Joining worker's results of Stage 1");
     # Join sampled points
     overall_sample = Array{Int64,1}(); # contains real instance ids
@@ -72,27 +69,17 @@ function start(results::Dict{String, Any},
     end
     sort!(overall_sample);    
     sort!(overall_sample_corepoints);
+    
+    #s_sampled_data = Set(sampled_data); # used to fusion all the points that are going to be used in this function
+    #sampled_data = sort(collect(s_sampled_data));# an ordered list of data point ids to load from disk (contains previously assigned     
     sort!(sampled_data);
     
     results["stage1_corepoints"] = overall_sample_corepoints; #Only corepoint data retrieved from the workers
     results["stage1_sampled"] = overall_sample; #Only noncorepoint data retrieved from the workers
     #results["centralized_worker_points"] = sampled_data; #All the retrieved data from the workers
-    
-    #=
-    # Code block that gets worker-id for each gathered corepoint.
-    overall_sample_workers = fill(-1, length(overall_sample_corepoints))
-    for (idx, pid) in enumerate(workers())
-        node_id = idx+1;
-        worker_assignment = find(x -> x==node_id, partition);
-        for i=collect(1:length(overall_sample_corepoints))
-            if overall_sample_corepoints[i] in worker_assignment
-                overall_sample_workers[i] = node_id - 1
-            end
-        end
-    end
-    results["centralized_worker_corepoints_origin"] = overall_sample_workers
-    =#
-    
+   
+    sampled_data = results["stage1_corepoints"];
+
     println("[M] Corepoints (",length(overall_sample_corepoints),") and Samples (",length(overall_sample),")") 
 
 
@@ -101,23 +88,18 @@ function start(results::Dict{String, Any},
     ### STAGE 2
     ###
     
+    stage2_knn = config_params["master.stage2knn"];
+    
+    #recall that sampled-data contains corepoints and their samples
     d = DSNN_IO.sparseMatFromFile(inputPath, assigned_instances=sampled_data, l2normalize=true);
     num_points = size(d, 2);
     
-    #k_ap = worker_params["k_appindex"]; epsilon = 0.001;#epsilon is set always to this value
-    #apix = DSNN_KNN.initialAppGraph(d, k_ap, epsilon, k_ap*2);
-    #DSNN_KNN.improve_graph!(apix, d, k_ap, epsilon, k_ap*2);
-    
-    k = worker_params["k"];
-    #knnmat_ap, nbrhd_len = DSNN_KNN.get_knnmatrix(apix, k, binarize=true); #, sim_threshold = 0.15);
-    #snnmat_ap = DSNN_KNN.get_snnsimilarity(knnmat_ap, nbrhd_len)
-    #snn_graph = DSNN_KNN.get_snngraph(knnmat_ap, snnmat_ap);
-
-    snnmat, knnmat = DSNN_KNN.get_snnsimilarity(d, k, l2knng_path="/workspace/l2knng/build/knng");
+    snnmat, knnmat = DSNN_KNN.get_snnsimilarity(d, stage2_knn, l2knng_path=config_params["l2knng.path"]);
     snn_graph = DSNN_KNN.get_snngraph(knnmat, snnmat);
     
     assert(num_points == size(snn_graph,2));
     
+    #=    
     println("[M] Creating SNN graph with data retrieved from workers...")
     #println("[M] Creating SNN graph with data retrieved from workers...(cut_point set to ",snn_cut_point,")")
     G = LightGraphs.Graph(num_points)
@@ -135,8 +117,29 @@ function start(results::Dict{String, Any},
     # getting the corepoint labels
     # find positions in sampled_data that correpond to the gathered corepoints
     println("[M] Number of groups detected with retrieved data:",length(unique(vLN)));
-    corepoint_labels = vLN[find(x->x in overall_sample_corepoints, sampled_data)];
-    
+    corepoint_labels = vLN[find(x->x in overall_sample_corepoints, sampled_data)]; 
+    =#
+
+    adj_mat = snn_graph;
+    numpoints = size(snn_graph, 1);
+    G = Graphs.simple_adjlist(numpoints, is_directed=false);
+    for i in collect(1:numpoints)
+        for j in adj_mat[:,i].nzind
+            Graphs.add_edge!(G, i, j)
+        end
+    end
+
+    cmps = Graphs.connected_components(G);
+
+    println("Num. connected components:",length(cmps));
+    labels_found = fill(-1, numpoints);
+    for cmp_i in eachindex(cmps)
+        for p in cmps[cmp_i]
+            labels_found[p] = cmp_i;
+        end
+    end
+    corepoint_labels = labels_found[find(x->x in overall_sample_corepoints, sampled_data)]; 
+
     #assert(length(corepoint_labels) == length(overall_sample_corepoints))
     
     results["stage1_graph"] = snn_graph;
@@ -161,7 +164,7 @@ function start(results::Dict{String, Any},
             overall_sample_corepoints,
             corepoint_labels,
             inputPath,
-            worker_result[node_id]["k"]);
+            config_params);
         end
     end
     

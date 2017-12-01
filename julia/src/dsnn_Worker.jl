@@ -5,13 +5,10 @@ using DSNN_KNN
 using DSNN_SNN
 using Stats
 
-function stage1_start(assigned_instances::Array{Int64,1}, 
-    inputPath::String, 
-    pct_sample::Float64,
-    k::Int64;
-    k_ap::Int64 = 200,
-    snn_eps::Float64 = 0.4,
-    snn_minpts::Int64 = 10
+function stage1_start(
+        assigned_instances::Array{Int64,1}, 
+        inputPath::String, 
+        config_params::Dict{String, Any}
     )
     #=
      Takes a file path where the data matrix is storedXX.
@@ -23,22 +20,20 @@ function stage1_start(assigned_instances::Array{Int64,1},
      This sample is built from the core-points detected by the SNN algorithm ran within the node.
     =#
 
+
+    pct_sample=config_params["worker.sample_pct"];
+    knn=config_params["worker.knn"];
+    snn_eps=config_params["worker.snn_eps"];
+    snn_minpts=config_params["worker.snn_minpts"];
+
     d = DSNN_IO.sparseMatFromFile(inputPath, assigned_instances=assigned_instances, l2normalize=true);
     
-    #k_ap = 200; 
-    #epsilon = 0.01;
-    #apix = DSNN_KNN.initialAppGraph(d, k_ap, epsilon, k_ap*2);
-    #DSNN_KNN.improve_graph!(apix, d, k_ap, epsilon, k_ap*2);
-    
-    #knnmat_ap, nbrhd_len = DSNN_KNN.get_knnmatrix(apix, k, binarize=true)#, sim_threshold = 0.15);
-    #snnmat_ap = DSNN_KNN.get_snnsimilarity(knnmat_ap, nbrhd_len)
-    #snn_graph = DSNN_KNN.get_snngraph(knnmat_ap, snnmat_ap);
-    
-    snnmat, knnmat = DSNN_KNN.get_snnsimilarity(d, k, l2knng_path="/workspace/l2knng/build/knng");
+    snnmat, knnmat = DSNN_KNN.get_snnsimilarity(d, knn, l2knng_path=config_params["l2knng.path"]);
     snn_graph = DSNN_KNN.get_snngraph(knnmat, snnmat);
 
     println("[W] executing snn clustering with eps:",snn_eps," and minpts:", snn_minpts)
-    cl_results = DSNN_SNN.snn_clustering(snn_eps, snn_minpts, snn_graph);
+    #cl_results = DSNN_SNN.snn_clustering(snn_eps, snn_minpts, snn_graph);
+    cl_results = DSNN_SNN.snn_clustering(snn_eps, snn_minpts, snnmat);
 
     cl_labels = cl_results["labels"];# Matrix containing length(assigned_instances) x num_clusters_found
     cl_clusters = cl_results["clusters"];# Array with the label of each column of the matrix above
@@ -56,7 +51,7 @@ function stage1_start(assigned_instances::Array{Int64,1},
     result = Dict{String, Any}();
     result["Eps"] = snn_eps;
     result["MinPts"] = snn_minpts;
-    result["k"]=k;
+    result["knn"]=knn;
     result["clusters"] = cl_clusters;
     result["corepoints"] = assigned_instances[cl_corepoints];
     result["noncorepoints"] = assigned_instances[noncorepoints];
@@ -68,13 +63,21 @@ function stage1_start(assigned_instances::Array{Int64,1},
         # Sample points from cl_labels[:,C].nzind
         # wv = weights([0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1])
         C_size = length(cl_labels[:,C].nzind);
-        sample_C = Stats.sample(cl_labels[:,C].nzind, ceil(Int64, C_size*pct_sample), replace=false);
+        sample_C = Stats.sample(cl_labels[:,C].nzind, ceil(Int64, C_size*pct_sample), replace=false);        
         sample_pts = vcat(sample_pts, sample_C);
     end
     
-    sort!(sample_pts);
+    # filter corepoints from the sample sample_pts
+    filtered_sample = Int64[];
+    for pt in sample_pts
+        if !(pt in cl_corepoints)
+            push!(filtered_sample, pt);
+        end
+    end
+    
+    sort!(filtered_sample);
     #sample_pts = vcat(corepoints, sample_pts);#sampled_pts contains both points
-    result["sampled_points"] = assigned_instances[sample_pts];
+    result["sampled_points"] = assigned_instances[filtered_sample];
     return result    
 end
 
@@ -82,7 +85,7 @@ function stage2_start(assigned_instances::Array{Int64,1},
     overall_corepoints::Array{Int64, 1},
     corepoint_labels::Array{Int64, 1},
     inputPath::String,
-    k::Int64)
+    config_params::Dict{String, Any})
  
     s_instances = Set(vcat(assigned_instances, overall_corepoints)); # used to fusion all the points that are going to be used in this function
     instances = sort(collect(s_instances));# an ordered list of data point ids to load from disk (contains previously assigned points and the list of overall corepoints
@@ -112,32 +115,34 @@ function stage2_start(assigned_instances::Array{Int64,1},
 
     d = DSNN_IO.sparseMatFromFile(inputPath, assigned_instances=instances, l2normalize=true);
 
-    #k_ap = 200; epsilon = 0.01;
-    #apix = DSNN_KNN.initialAppGraph(d, k_ap, epsilon, k_ap*2);
-    #DSNN_KNN.improve_graph!(apix, d, k_ap, epsilon, k_ap*2);
-    
-    #knnmat_ap, nbrhd_len = DSNN_KNN.get_knnmatrix(apix, k, binarize=true)#, sim_threshold = 0.15);
-    #snnmat_ap = DSNN_KNN.get_snnsimilarity(knnmat_ap, nbrhd_len)
-    #snn_graph = DSNN_KNN.get_snngraph(knnmat_ap, snnmat_ap); # adjacency matrix in which two vertices are connected only if both are in each other neighborhood
-    #snn_graph[:, cp_in_data] denote all the columns containing sim values between corepoints and the remaining points.
+    #println("[W] Labeling assigned instances from the oveall corepoints (value for k:",round(Int64,0.5*k),")")
+    #snnmat, knnmat = DSNN_KNN.get_snnsimilarity(d, round(Int64,0.5*k), min_threshold=0.7, l2knng_path=config_params["l2knng.path"]);
 
-    snnmat, knnmat = DSNN_KNN.get_snnsimilarity(d, k, l2knng_path="/workspace/l2knng/build/knng");
+    knn = config_params["worker.knn"];
+
+    println("[W] Labeling assigned instances from the oveall corepoints")
+    snnmat, knnmat = DSNN_KNN.get_snnsimilarity(d, knn, l2knng_path=config_params["l2knng.path"]);
+
     snn_graph = DSNN_KNN.get_snngraph(knnmat, snnmat);
 
     
-    nrst_cp = Dict{Int64, Tuple{Int64, Float64}}();
+    nrst_cp = Dict{Int64, Tuple{Int64, Float64}}();# contains for each key (point) the info of its nearest corepoint
     # Strategy followed to label each noncore data point:
     # Traverse each corepoint column and assign its label to the nzind that are not corepoints
     # WARN: Maybe some points have 0-similarity value against every corepoint
+    
+    #graph_data = snn_graph;
+    graph_data = snnmat;
+    
     for i in cp_in_data
-        nnz_nbrs = snn_graph[:,i].nzind
+        nnz_nbrs = graph_data[:,i].nzind # only those points that have non-zero similarity with a corepoint
         for j in nnz_nbrs
             if !is_corepoint(instances[j])
                 if !haskey(nrst_cp, j)
-                    nrst_cp[j] = (i, snn_graph[j,i]);
+                    nrst_cp[j] = (i, graph_data[j,i]);
                 else
-                    if nrst_cp[j][2] < snn_graph[j,i]
-                        nrst_cp[j] = (i,snn_graph[j,i])
+                    if nrst_cp[j][2] < graph_data[j,i]
+                        nrst_cp[j] = (i, graph_data[j,i])
                     end
                 end
             end
@@ -164,7 +169,6 @@ function stage2_start(assigned_instances::Array{Int64,1},
     end
     
     return Dict{String, Array{Int64,1}}("assigned_instances" => assigned_instances, "labels" => assignment_labels);
-    #return Dict{Int64, Int64}(zip(assigned_instances, assignment_labels));
 end
 
 end
