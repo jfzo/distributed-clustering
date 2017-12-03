@@ -1,0 +1,20 @@
+master.inputpath:str=/workspace/cure_large.dat
+master.stage2knn:int=70
+master.nodelist:str_list=158.251.88.180:3301,158.251.88.180:3302,158.251.88.180:3303,158.251.88.180:3304
+worker.knn:int=70
+worker.snn_eps:float=0.9
+worker.snn_minpts:int=13
+worker.sample_pct:float=0.1
+l2knng.path:str=/workspace/l2knng/build/knng
+corepoint.use_snngraph:bool=true
+corepoint.knn:int=20
+corepoint.eps:float=0.8
+corepoint.minpts:int=1
+corepoint.dbscan.minpts:int=10
+corepoint.dbscan.eps:float=0.9
+# an int list
+#ex.parami:int_list=3,5,8,10,20
+# a float list
+#ex.paramf:float_list=3.1,5,0.888,10.0982,20
+
+
