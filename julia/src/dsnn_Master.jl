@@ -14,8 +14,10 @@ include("/workspace/distributed_clustering/julia/src/dsnn_Worker.jl")
 include("/workspace/distributed_clustering/julia/src/dsnn_SNN.jl")
 include("/workspace/distributed_clustering/julia/src/dsnn_KNN.jl")
 include("/workspace/distributed_clustering/julia/src/dsnn_IO.jl")
-#using LightGraphs
+
+using LightGraphs
 using Graphs
+using Clustering
 
 function start(results::Dict{String, Any}, 
     inputPath::String, 
@@ -92,57 +94,88 @@ function start(results::Dict{String, Any},
     
     #recall that sampled-data contains corepoints and their samples
     d = DSNN_IO.sparseMatFromFile(inputPath, assigned_instances=sampled_data, l2normalize=true);
-    num_points = size(d, 2);
+    numpoints = size(d, 2);
     
     snnmat, knnmat = DSNN_KNN.get_snnsimilarity(d, stage2_knn, l2knng_path=config_params["l2knng.path"]);
-    snn_graph = DSNN_KNN.get_snngraph(knnmat, snnmat);
+    #snngraph = DSNN_KNN.get_snngraph(knnmat, snnmat);    
+    assert(numpoints == size(snnmat,2));
+
+    adj_mat = snnmat;
+    if config_params["corepoint.use_snngraph"]
+        snngraph = DSNN_KNN.get_snngraph(knnmat, snnmat);
+        adj_mat = snngraph;
+    end
+
+    print("[M] Grouping selected corepoints and sampled data by ");
+    labels_found = fill(0, length(sampled_data));
     
-    assert(num_points == size(snn_graph,2));
-    
-    #=    
-    println("[M] Creating SNN graph with data retrieved from workers...")
-    #println("[M] Creating SNN graph with data retrieved from workers...(cut_point set to ",snn_cut_point,")")
-    G = LightGraphs.Graph(num_points)
-    for i in collect(1:num_points)
-       for j in snn_graph[:, i].nzind
-           if j > i 
-               # maybe a threshold based on snn_graph[j,i] could be used !
-               if ~LightGraphs.add_edge!(G, i, j)
-                   println("[M] Error: Cannot add edge between vertices ",i," and ",j)
+    if config_params["master.stage2clustering"] == "snn"
+        println("applying SNN clustering");
+        cp_results = DSNN_SNN.snn_clustering(config_params["corepoint.eps"], config_params["corepoint.minpts"], adj_mat);        
+        for c in collect(1:size(cp_results["labels"],2))
+            for i in cp_results["labels"][:,c].nzind
+                labels_found[i] = cp_results["clusters"][c]; # extract the right assigned label name
+            end
+        end
+    elseif  config_params["master.stage2clustering"] == "conncomps"
+        println("extracting Connected components");
+        G = Graphs.simple_adjlist(numpoints, is_directed=false);
+        for i in collect(1:numpoints)
+            for j in adj_mat[:,i].nzind
+                Graphs.add_edge!(G, i, j)
+            end
+        end
+
+        cmps = Graphs.connected_components(G);
+        labels_found = fill(-1, numpoints);
+        for cmp_i in eachindex(cmps)
+            for p in cmps[cmp_i]
+                labels_found[p] = cmp_i;
+            end
+        end
+    elseif  config_params["master.stage2clustering"] == "maxcliques"
+        println("obtaining Max Cliques");
+        G = Graphs.simple_adjlist(numpoints, is_directed=false);
+        for i in collect(1:numpoints)
+            for j in adj_mat[:,i].nzind
+                Graphs.add_edge!(G, i, j)
+            end
+        end
+
+        cmps = Graphs.maximal_cliques(G);
+        labels_found = fill(-1, numpoints);
+        for cmp_i in eachindex(cmps)
+            for p in cmps[cmp_i]
+                labels_found[p] = cmp_i;
+            end
+        end
+    elseif  config_params["master.stage2clustering"] == "lblprop"
+        println("applying Label Propagation");
+        G = LightGraphs.Graph(numpoints)
+        for i in collect(1:numpoints)
+           for j in adj_mat[:, i].nzind
+               if j > i 
+                   # maybe a threshold based on adj_mat[j,i] could be used !
+                   if ~LightGraphs.add_edge!(G, i, j)
+                       println("[M] Error: Cannot add edge between vertices ",i," and ",j)
+                   end
                end
            end
-       end
-    end
-    vLN, conv_history = LightGraphs.label_propagation(G);
-    # getting the corepoint labels
-    # find positions in sampled_data that correpond to the gathered corepoints
-    println("[M] Number of groups detected with retrieved data:",length(unique(vLN)));
-    corepoint_labels = vLN[find(x->x in overall_sample_corepoints, sampled_data)]; 
-    =#
-
-    adj_mat = snn_graph;
-    numpoints = size(snn_graph, 1);
-    G = Graphs.simple_adjlist(numpoints, is_directed=false);
-    for i in collect(1:numpoints)
-        for j in adj_mat[:,i].nzind
-            Graphs.add_edge!(G, i, j)
         end
+        labels_found, conv_history = LightGraphs.label_propagation(G);
+    elseif  config_params["master.stage2clustering"] == "dbscan"
+        println("applying the DBSCAN method");
+        dbscan_cl = Clustering.dbscan(full(1.0 .- adj_mat), config_params["corepoint.dbscan.eps"], config_params["corepoint.dbscan.minpts"]);
+        labels_found = dbscan_cl.assignments;
+        
     end
-
-    cmps = Graphs.connected_components(G);
-
-    println("Num. connected components:",length(cmps));
-    labels_found = fill(-1, numpoints);
-    for cmp_i in eachindex(cmps)
-        for p in cmps[cmp_i]
-            labels_found[p] = cmp_i;
-        end
-    end
+    
+    
     corepoint_labels = labels_found[find(x->x in overall_sample_corepoints, sampled_data)]; 
 
     #assert(length(corepoint_labels) == length(overall_sample_corepoints))
     
-    results["stage1_graph"] = snn_graph;
+    results["stage1_graph"] = adj_mat;
     
     results["centralized_worker_corepoints_labels"] = corepoint_labels;
     

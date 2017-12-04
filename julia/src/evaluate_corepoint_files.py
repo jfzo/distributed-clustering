@@ -62,26 +62,26 @@ performances.append(["D-SNN (all)",values["v-score"],values["ari"],values["ami"]
 labels = np.loadtxt("{0}.corepoints.snn.labels".format(DATA_PATH), delimiter="\n")
 #print_performance(real_lbl, labels)
 values = obtain_performance(real_lbl, labels)
-performances.append(["SNN",values["v-score"],values["ari"],values["ami"]])
+performances.append(["SNN (cpts)",values["v-score"],values["ari"],values["ami"]])
 
 labels = np.loadtxt("{0}.corepoints.conncomps.labels".format(DATA_PATH), delimiter="\n")
 #print_performance(real_lbl, labels)
 values = obtain_performance(real_lbl, labels)
-performances.append(["Conn. Comps.",values["v-score"],values["ari"],values["ami"]])
+performances.append(["Conn. Comps. (cpts)",values["v-score"],values["ari"],values["ami"]])
 
 labels = np.loadtxt("{0}.corepoints.cliques.labels".format(DATA_PATH), delimiter="\n")
 #print_performance(real_lbl, labels)
 values = obtain_performance(real_lbl, labels)
-performances.append(["Max Cliques",values["v-score"],values["ari"],values["ami"]])
+performances.append(["Max Cliques (cpts)",values["v-score"],values["ari"],values["ami"]])
 
 labels = np.loadtxt("{0}.corepoints.lblprop.labels".format(DATA_PATH), delimiter="\n")
 #print_performance(real_lbl, labels)
 values = obtain_performance(real_lbl, labels)
-performances.append(["Label Prop.",values["v-score"],values["ari"],values["ami"]])
+performances.append(["Label Prop. (cpts)",values["v-score"],values["ari"],values["ami"]])
 
 labels = np.loadtxt("{0}.corepoints.dbscan.labels".format(DATA_PATH), delimiter="\n")
 #print_performance(real_lbl, labels)
 values = obtain_performance(real_lbl, labels)
-performances.append(["DBSCAN (julia)",values["v-score"],values["ari"],values["ami"]])
+performances.append(["DBSCAN (cpts)",values["v-score"],values["ari"],values["ami"]])
 
 print tabulate(performances, headers, tablefmt=args.f)
