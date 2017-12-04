@@ -29,11 +29,18 @@ function stage1_start(
     d = DSNN_IO.sparseMatFromFile(inputPath, assigned_instances=assigned_instances, l2normalize=true);
     
     snnmat, knnmat = DSNN_KNN.get_snnsimilarity(d, knn, l2knng_path=config_params["l2knng.path"]);
-    snn_graph = DSNN_KNN.get_snngraph(knnmat, snnmat);
 
+    adj_mat = snnmat;
+    if config_params["worker.use_snngraph"]
+        snn_graph = DSNN_KNN.get_snngraph(knnmat, snnmat);            
+        adj_mat = snn_graph;
+    end
+
+    
+    
     println("[W] executing snn clustering with eps:",snn_eps," and minpts:", snn_minpts)
     #cl_results = DSNN_SNN.snn_clustering(snn_eps, snn_minpts, snn_graph);
-    cl_results = DSNN_SNN.snn_clustering(snn_eps, snn_minpts, snnmat);
+    cl_results = DSNN_SNN.snn_clustering(snn_eps, snn_minpts, adj_mat);
 
     cl_labels = cl_results["labels"];# Matrix containing length(assigned_instances) x num_clusters_found
     cl_clusters = cl_results["clusters"];# Array with the label of each column of the matrix above
@@ -58,12 +65,13 @@ function stage1_start(
     result["noise_points"] = assigned_instances[noisy_pts];
     result["cluster_assignment"] = cl_labels;
     
+    RNG_W = srand(config_params["seed"]);
     sample_pts = Int64[]
     for C in eachindex(cl_clusters)
         # Sample points from cl_labels[:,C].nzind
         # wv = weights([0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1])
         C_size = length(cl_labels[:,C].nzind);
-        sample_C = Stats.sample(cl_labels[:,C].nzind, ceil(Int64, C_size*pct_sample), replace=false);        
+        sample_C = Stats.sample(RNG_W, cl_labels[:,C].nzind, ceil(Int64, C_size*pct_sample), replace=false);        
         sample_pts = vcat(sample_pts, sample_C);
     end
     
@@ -102,6 +110,9 @@ function stage2_start(assigned_instances::Array{Int64,1},
     labels = Dict{Int64, Int64}();
     cp_in_data = Int64[]; # array contaning all corepoints relative to this fusioned dataset matrix columns
     ncp_in_data = Int64[];
+    # useful for snn
+    #iscore = fill(false, length(instances));
+    
     for i in eachindex(instances)
         # default label set to -1 when the data point is not a corepoint
         if is_corepoint(instances[i])
@@ -120,52 +131,46 @@ function stage2_start(assigned_instances::Array{Int64,1},
 
     knn = config_params["worker.knn"];
 
-    println("[W] Labeling assigned instances from the oveall corepoints")
+    println("[W] Labeling assigned instances from the overall corepoints")
     snnmat, knnmat = DSNN_KNN.get_snnsimilarity(d, knn, l2knng_path=config_params["l2knng.path"]);
+    #snn_graph = DSNN_KNN.get_snngraph(knnmat, snnmat);
+    adj_mat = snnmat;
+    if config_params["worker.use_snngraph"]
+        snn_graph = DSNN_KNN.get_snngraph(knnmat, snnmat);            
+        adj_mat = snngraph;
+    end
 
-    snn_graph = DSNN_KNN.get_snngraph(knnmat, snnmat);
-
-    
-    nrst_cp = Dict{Int64, Tuple{Int64, Float64}}();# contains for each key (point) the info of its nearest corepoint
-    # Strategy followed to label each noncore data point:
-    # Traverse each corepoint column and assign its label to the nzind that are not corepoints
-    # WARN: Maybe some points have 0-similarity value against every corepoint
-    
-    #graph_data = snn_graph;
-    graph_data = snnmat;
-    
-    for i in cp_in_data
-        nnz_nbrs = graph_data[:,i].nzind # only those points that have non-zero similarity with a corepoint
-        for j in nnz_nbrs
-            if !is_corepoint(instances[j])
-                if !haskey(nrst_cp, j)
-                    nrst_cp[j] = (i, graph_data[j,i]);
-                else
-                    if nrst_cp[j][2] < graph_data[j,i]
-                        nrst_cp[j] = (i, graph_data[j,i])
-                    end
+  
+    # Label assignment in the style of snn
+    # This is the last step in the snn-clustering algorithm
+    for i in collect(1:length(instances))
+        if is_corepoint(instances[i])
+            labels[instances[i]] = corepoint_labels[instances[i]];
+            continue
+        end
+        # get the nearest corepoint
+        nst_core = -1;
+        nst_core_sim = -1;
+        labels[instances[i]] = DSNN_SNN.NOISE;        
+        for q in adj_mat[:,i].nzind
+            if is_corepoint(instances[q])  # consider only corepoint neighbors
+                if adj_mat[q,i] > nst_core_sim
+                    nst_core = q;
+                    nst_core_sim = adj_mat[q,i];
                 end
             end
         end
-    end
-
-    # assign the nearest corepoint label into the label array
-    #println("Noncorepoints examined: ",length(keys(nrst_cp))," / should be equal to ",length(ncp_in_data))
-    for i in eachindex(instances)
-        if !is_corepoint(instances[i])
-            if haskey(nrst_cp, i)
-                nrst_cp_ix = instances[nrst_cp[i][1]];
-                labels[instances[i]] = corepoint_labels[nrst_cp_ix];
-            end # otherwise the label is set to a negative number
+        if nst_core_sim >= config_params["worker.snn_eps"]
+            labels[instances[i]] = corepoint_labels[instances[nst_core]];
         end
     end
-
+    
     # Filter the labels of the non core points only.
     assignment_labels = fill(-1, length(assigned_instances));
     for i in eachindex(assigned_instances)
-        if haskey(labels, assigned_instances[i])
-            assignment_labels[i] = labels[assigned_instances[i]];
-        end
+        #if haskey(labels, assigned_instances[i])
+        assignment_labels[i] = labels[assigned_instances[i]];
+        #end
     end
     
     return Dict{String, Array{Int64,1}}("assigned_instances" => assigned_instances, "labels" => assignment_labels);

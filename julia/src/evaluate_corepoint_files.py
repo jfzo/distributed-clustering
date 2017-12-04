@@ -40,9 +40,11 @@ print "Evaluating over corepoints generated from data file", DATA_PATH
 #cpdata = np.genfromtxt("{0}.corepoints.csv".format(DATA_PATH), delimiter=' ')
 real_lbl = np.loadtxt("{0}.corepoints.labels".format(DATA_PATH),delimiter="\n")
 allreal_lbl = np.loadtxt("{0}.labels".format(DATA_PATH),delimiter="\n")
+total_num_clusters = np.unique(allreal_lbl).shape[0]
+
 
 performances = [];
-headers = ["Method", "V-Score", "ARI", "AMI"]
+headers = ["Method", "V-Score", "ARI", "AMI", "#Grps(from {0})".format(total_num_clusters)]
 
 """
 db = DBSCAN(eps=0.9, min_samples=10).fit(cpdata)
@@ -54,34 +56,48 @@ values = obtain_performance(real_lbl, labels)
 performances.append(["DBSCAN (scikit)",values["v-score"],values["ari"],values["ami"]])
 """
 labels = np.loadtxt("{0}.dsnnfinal.labels".format(DATA_PATH), delimiter="\n")
+num_clusters_found = np.unique(labels).shape[0]
 #print_performance(real_lbl, labels)
 values = obtain_performance(allreal_lbl, labels)
-performances.append(["D-SNN (all)",values["v-score"],values["ari"],values["ami"]])
+performances.append(["D-SNN (all)",values["v-score"],values["ari"],values["ami"],num_clusters_found])
 
 
 labels = np.loadtxt("{0}.corepoints.snn.labels".format(DATA_PATH), delimiter="\n")
+num_clusters_found = np.unique(labels).shape[0]
 #print_performance(real_lbl, labels)
 values = obtain_performance(real_lbl, labels)
-performances.append(["SNN (cpts)",values["v-score"],values["ari"],values["ami"]])
+performances.append(["SNN (cpts)",values["v-score"],values["ari"],values["ami"],num_clusters_found])
 
 labels = np.loadtxt("{0}.corepoints.conncomps.labels".format(DATA_PATH), delimiter="\n")
+num_clusters_found = np.unique(labels).shape[0]
 #print_performance(real_lbl, labels)
 values = obtain_performance(real_lbl, labels)
-performances.append(["Conn. Comps. (cpts)",values["v-score"],values["ari"],values["ami"]])
+performances.append(["Conn. Comps. (cpts)",values["v-score"],values["ari"],values["ami"],num_clusters_found])
 
 labels = np.loadtxt("{0}.corepoints.cliques.labels".format(DATA_PATH), delimiter="\n")
+num_clusters_found = np.unique(labels).shape[0]
 #print_performance(real_lbl, labels)
 values = obtain_performance(real_lbl, labels)
-performances.append(["Max Cliques (cpts)",values["v-score"],values["ari"],values["ami"]])
+performances.append(["Max Cliques (cpts)",values["v-score"],values["ari"],values["ami"],num_clusters_found])
 
 labels = np.loadtxt("{0}.corepoints.lblprop.labels".format(DATA_PATH), delimiter="\n")
+num_clusters_found = np.unique(labels).shape[0]
 #print_performance(real_lbl, labels)
 values = obtain_performance(real_lbl, labels)
-performances.append(["Label Prop. (cpts)",values["v-score"],values["ari"],values["ami"]])
+performances.append(["Label Prop. (cpts)",values["v-score"],values["ari"],values["ami"],num_clusters_found])
 
 labels = np.loadtxt("{0}.corepoints.dbscan.labels".format(DATA_PATH), delimiter="\n")
+num_clusters_found = np.unique(labels).shape[0]
 #print_performance(real_lbl, labels)
 values = obtain_performance(real_lbl, labels)
-performances.append(["DBSCAN (cpts)",values["v-score"],values["ari"],values["ami"]])
+performances.append(["DBSCAN (cpts)",values["v-score"],values["ari"],values["ami"],num_clusters_found])
+
+#/workspace/cure_large.dat.clustering.7
+labels = np.loadtxt("/workspace/cure_large.dat.clustering.7", delimiter="\n")
+num_clusters_found = np.unique(labels).shape[0]
+#print_performance(real_lbl, labels)
+values = obtain_performance(allreal_lbl, labels)
+performances.append(["RepBis. (all)",values["v-score"],values["ari"],values["ami"],num_clusters_found])
+
 
 print tabulate(performances, headers, tablefmt=args.f)

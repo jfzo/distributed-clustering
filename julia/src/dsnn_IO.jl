@@ -14,7 +14,7 @@ function read_configuration(inputPath::String)
             continue;
         end
         name_type, value = split(ln, "=");
-        name, ntype = split(name_type, ":");
+        name, ntype = split(strip(name_type), ":");
         value = strip(value);# in case it contains a space at the after the '='
         # available types are: str (default), int, float, bool (lists in the future)
         if ntype == "str"
@@ -38,6 +38,50 @@ function read_configuration(inputPath::String)
     close(f);
     return config;
 end
+
+"""
+    store_configuration(inputPath, config)
+
+Dumps the configuration dict into a file.
+"""
+function store_configuration(inputPath::String, config::Dict{String, Any})
+    open(inputPath, "w") do f
+        for k in keys(config)
+            if isa(config[k], String)
+                write(f, @sprintf("%s:str=%s\n",k,config[k]));
+            elseif isa(config[k], Int64)
+                write(f, @sprintf("%s:int=%d\n",k,config[k]));
+            elseif  isa(config[k], Float64)
+                write(f, @sprintf("%s:float=%f\n",k,config[k]));
+            elseif  isa(config[k], Bool)
+                if config[k]
+                    write(f, @sprintf("%s:bool=true\n",k));
+                else
+                    write(f, @sprintf("%s:bool=false\n",k));
+                end
+            elseif  isa(config[k], Array{String,1})
+                s = config[k][1];
+                for i in collect(2:length(config[k]));
+                    s = string(s,",",config[k][i]);
+                end                
+                write(f, @sprintf("%s:str_list=%s\n",k, s));
+            elseif  isa(config[k], Array{Int64,1})
+                s = @sprintf("%d",config[k][1]);
+                for i in collect(2:length(config[k]))
+                    s = string(s,",",@sprintf("%d",config[k][i]) );
+                end
+                write(f, @sprintf("%s:int_list=%s\n",k, s));
+            elseif  isa(config[k], Array{Float64,1})
+                s = @sprintf("%f",config[k][1]);
+                for i in collect(2:length(config[k]))
+                    s = string(s,",",@sprintf("%f",config[k][i]) );
+                end                
+                write(f, @sprintf("%s:float_list=%s\n",k, s)); 
+            end
+        end
+    end
+end
+    
 
 function get_dimensions_from_input_file(inputPath::String)
     f = open(inputPath);

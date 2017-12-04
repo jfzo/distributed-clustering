@@ -34,7 +34,7 @@ include("/workspace/distributed_clustering/julia/src/dsnn_IO.jl")
 # Coloso
 #addprocs(["158.251.88.180:3301","158.251.88.180:3302","158.251.88.180:3303","158.251.88.180:3304",])
 
-overall_parameters = DSNN_IO.read_configuration("experiments_config");
+overall_parameters = DSNN_IO.read_configuration("experiments_config.csv");
 addprocs(overall_parameters["master.nodelist"]);
 
 @everywhere include("/workspace/distributed_clustering/julia/src/dsnn_IO.jl")
@@ -46,6 +46,9 @@ using Graphs
 using CSV
 
 results = Dict{String,Any}();
+
+run_seed = overall_parameters["seed"];
+srand(run_seed);
 
 DATA_LEN, DATA_DIM = DSNN_IO.get_dimensions_from_input_file(DATA_PATH);
 partitions = DSNN_Master.generate_partitions(length(workers()), DATA_LEN); # N must be extracted from the data.
@@ -67,10 +70,10 @@ cp_real_labels = real_labels[results["stage1_corepoints"]];
 CSV.write(@sprintf("%s.corepoints.csv",DATA_PATH), DataFrames.DataFrame(full(transpose(Dw))), delim=' ',  header=false);
 writedlm(@sprintf("%s.corepoints.labels",DATA_PATH), cp_real_labels, "\n");
 
-snnmat, knnmat = DSNN_KNN.get_snnsimilarity(Dw, overall_parameters["corepoint.knn"], l2knng_path=overall_parameters["l2knng.path"]);
+snnmat, knnmat = DSNN_KNN.get_snnsimilarity(Dw, overall_parameters["master.stage2knn"], l2knng_path=overall_parameters["l2knng.path"]);
 
 adj_mat = snnmat;
-if overall_parameters["corepoint.use_snngraph"]
+if overall_parameters["master.use_snngraph"]
     snngraph = DSNN_KNN.get_snngraph(knnmat, snnmat);
     adj_mat = snngraph;
 end
@@ -78,7 +81,7 @@ end
 # Applying SNN-Clustering overthe corepoints
 @time begin
     println("Applying SNN-Clustering over the corepoints...");
-    cp_results = DSNN_SNN.snn_clustering(overall_parameters["corepoint.eps"], overall_parameters["corepoint.minpts"], adj_mat);
+    cp_results = DSNN_SNN.snn_clustering(overall_parameters["master.snn.eps"], overall_parameters["master.snn.minpts"], adj_mat);
 
     labels_found = fill(0, size(cp_results["labels"],1));
     for c in collect(1:size(cp_results["labels"],2))
@@ -181,7 +184,7 @@ end
     using Clustering
 
     #dbscan_cl = Clustering.dbscan(full(Dw), 0.1, min_neighbors=15);
-    dbscan_cl = Clustering.dbscan(full(1.0 .- adj_mat), overall_parameters["corepoint.dbscan.eps"], overall_parameters["corepoint.dbscan.minpts"]);
+    dbscan_cl = Clustering.dbscan(full(1.0 .- adj_mat), overall_parameters["master.dbscan.eps"], overall_parameters["master.dbscan.minpts"]);
     labels_found = dbscan_cl.assignments;
     println("Num. Clusters found:",length(unique(labels_found)))
     writedlm(@sprintf("%s.corepoints.dbscan.labels",DATA_PATH), labels_found, "\n");

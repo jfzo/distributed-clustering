@@ -30,7 +30,7 @@ function start(results::Dict{String, Any},
     samples = Dict{Int64, Array{Int64,1}}()
     worker_result = Dict{Int64, Dict{String, Any}}()
 
-    knn = config_params["worker.knn"];
+    #knn = config_params["worker.knn"];
     
     ###
     ### STAGE 1
@@ -96,12 +96,12 @@ function start(results::Dict{String, Any},
     d = DSNN_IO.sparseMatFromFile(inputPath, assigned_instances=sampled_data, l2normalize=true);
     numpoints = size(d, 2);
     
-    snnmat, knnmat = DSNN_KNN.get_snnsimilarity(d, stage2_knn, l2knng_path=config_params["l2knng.path"]);
+    snnmat, knnmat = DSNN_KNN.get_snnsimilarity(d, stage2_knn, min_threshold=config_params["master.stage2snnsim_threshold"] , l2knng_path=config_params["l2knng.path"]);
     #snngraph = DSNN_KNN.get_snngraph(knnmat, snnmat);    
     assert(numpoints == size(snnmat,2));
 
     adj_mat = snnmat;
-    if config_params["corepoint.use_snngraph"]
+    if config_params["master.use_snngraph"]
         snngraph = DSNN_KNN.get_snngraph(knnmat, snnmat);
         adj_mat = snngraph;
     end
@@ -111,7 +111,7 @@ function start(results::Dict{String, Any},
     
     if config_params["master.stage2clustering"] == "snn"
         println("applying SNN clustering");
-        cp_results = DSNN_SNN.snn_clustering(config_params["corepoint.eps"], config_params["corepoint.minpts"], adj_mat);        
+        cp_results = DSNN_SNN.snn_clustering(config_params["master.snn.eps"], config_params["master.snn.minpts"], adj_mat);        
         for c in collect(1:size(cp_results["labels"],2))
             for i in cp_results["labels"][:,c].nzind
                 labels_found[i] = cp_results["clusters"][c]; # extract the right assigned label name
@@ -165,7 +165,7 @@ function start(results::Dict{String, Any},
         labels_found, conv_history = LightGraphs.label_propagation(G);
     elseif  config_params["master.stage2clustering"] == "dbscan"
         println("applying the DBSCAN method");
-        dbscan_cl = Clustering.dbscan(full(1.0 .- adj_mat), config_params["corepoint.dbscan.eps"], config_params["corepoint.dbscan.minpts"]);
+        dbscan_cl = Clustering.dbscan(full(1.0 .- adj_mat), config_params["master.dbscan.eps"], config_params["master.dbscan.minpts"]);
         labels_found = dbscan_cl.assignments;
         
     end

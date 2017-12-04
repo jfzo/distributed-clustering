@@ -1,0 +1,17 @@
+master.snn.eps:float=0.800000
+master.stage2knn:int=70
+worker.knn:int=70
+l2knng.path:str=/workspace/l2knng/build/knng
+master.dbscan.minpts:int=3
+master.stage2snnsim_threshold:float=0.900000
+master.dbscan.eps:float=0.500000
+master.nodelist:str_list=158.251.88.180:3301,158.251.88.180:3302,158.251.88.180:3303,158.251.88.180:3304
+master.snn.minpts:int=3
+worker.sample_pct:float=0.150000
+master.use_snngraph:bool=false
+worker.snn_eps:float=0.900000
+worker.snn_minpts:int=13
+worker.use_snngraph:bool=false
+master.inputpath:str=/workspace/cure_large.dat
+master.stage2clustering:str=snn
+seed:int=20929911109928830
