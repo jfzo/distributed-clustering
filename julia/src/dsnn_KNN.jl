@@ -556,18 +556,36 @@ l2knng_path parameter set to '/workspace/l2knng/knng' by default contains the fu
 Warning: This function performs a System call in order to execute the L2Knng original implementation.
 """
 function get_knn(data::SparseMatrixCSC, knn::Int64; file_prefix::String="wk", l2knng_path::String="/workspace/l2knng/knng")
-    if size(data,2) < 2*knn        
-        knn = (size(data,2) / 2)  - 20;
-        println(@sprintf("Warning: Nr. of neighbors is too high in contrast to the number of objects. Adjusted to %d",knn));
-    end
+    #if size(data,2) < 2*knn        
+    #    knn = (size(data,2) / 2)  - 20;
+    #    println(@sprintf("Warning: Nr. of neighbors is too high in contrast to the number of objects. Adjusted to %d",knn));
+    #end
     #generate the input file
     in_file = @sprintf("/tmp/%s_%s.in.clu",file_prefix, Dates.format(now(), "HH:MM_s"));
     DSNN_IO.sparseMatToFile(data, in_file);
     
     out_file = @sprintf("/tmp/%s_%s.out.clu",file_prefix, Dates.format(now(), "HH:MM_s"));
-    run(pipeline(`$l2knng_path -fmtWrite=clu -norm=2 -k=$knn l2knn $in_file $out_file`, stdout=DevNull, stderr=DevNull));
+    
+    while true
+        try
+            run(pipeline(`$l2knng_path -fmtWrite=clu -norm=2 -k=$knn l2knn $in_file $out_file`, stdout=DevNull, stderr=DevNull));
+            break
+        catch y
+            if isa(y, ErrorException)
+                knn = knn - 10;
+                println("Decreasing the KNN to ",knn," !");
+            end
+        end
+    end
     
     knn = DSNN_IO.sparseMatFromFile(out_file);
+    
+    try
+        run(`rm $in_file $out_file`);
+    catch y 
+        println("Cannot delete files generated.");
+    end
+    
     return knn;
 end
 
