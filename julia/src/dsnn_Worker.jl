@@ -46,8 +46,16 @@ function stage1_start(
     cl_clusters = cl_results["clusters"];# Array with the label of each column of the matrix above
     cl_corepoints = cl_results["corepoints"];# Array with data point indexes
     
-    noise_col = find(x->x==DSNN_SNN.NOISE, cl_clusters)[1]; #cl_labels[:,noise_col].nzind contains all the noisy point indexes
-    noisy_pts = cl_labels[:,noise_col].nzind;
+    if length(cl_results["corepoints"]) == 0
+        println("[W] Warning! No corepoints were found. Aborting execution in this worker.");
+        
+    end
+
+    noise_col = find(x->x==DSNN_SNN.NOISE, cl_clusters);#cl_labels[:,noise_col].nzind contains all the noisy point indexes
+    noisy_pts = Int64[];
+    if length(noise_col) > 0 
+        noisy_pts = cl_labels[:,noise_col[1]].nzind;
+    end
     noncorepoints = find(x->~(x in cl_corepoints) && ~(x in noisy_pts), collect(1:length(assigned_instances))); #cl_labels[:,noise_col].nzind contains all the noisy point indexes
     #
     # All these arrays contain point id's relative to assigned_instances!

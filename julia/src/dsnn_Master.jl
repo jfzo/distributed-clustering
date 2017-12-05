@@ -66,21 +66,19 @@ function start(results::Dict{String, Any},
             
             sampled_data = vcat(sampled_data, worker_result[i]["sampled_points"]);
             sampled_data = vcat(sampled_data, worker_result[i]["corepoints"]);
-            println("Amount of noisy data points detected by worker ",i,":",length(worker_result[i]["noise_points"]));
+            println("[M] Amount of noisy data points detected by worker ",i,":",length(worker_result[i]["noise_points"]));
         end        
     end
     sort!(overall_sample);    
     sort!(overall_sample_corepoints);
     
-    #s_sampled_data = Set(sampled_data); # used to fusion all the points that are going to be used in this function
-    #sampled_data = sort(collect(s_sampled_data));# an ordered list of data point ids to load from disk (contains previously assigned     
-    sort!(sampled_data);
+    s_sampled_data = Set(sampled_data); # used to fusion all the points that are going to be used in this function
+    sampled_data = sort(collect(s_sampled_data));# an ordered list of data point ids to load from disk (contains previously assigned     
+    #sort!(sampled_data);
     
     results["stage1_corepoints"] = overall_sample_corepoints; #Only corepoint data retrieved from the workers
     results["stage1_sampled"] = overall_sample; #Only noncorepoint data retrieved from the workers
-    #results["centralized_worker_points"] = sampled_data; #All the retrieved data from the workers
-   
-    sampled_data = results["stage1_corepoints"];
+    #sampled_data = overall_sample_corepoints;
 
     println("[M] Corepoints (",length(overall_sample_corepoints),") and Samples (",length(overall_sample),")") 
 
@@ -110,7 +108,7 @@ function start(results::Dict{String, Any},
     labels_found = fill(0, length(sampled_data));
     
     if config_params["master.stage2clustering"] == "snn"
-        println("applying SNN clustering");
+        println("[M] applying SNN clustering");
         cp_results = DSNN_SNN.snn_clustering(config_params["master.snn.eps"], config_params["master.snn.minpts"], adj_mat);        
         for c in collect(1:size(cp_results["labels"],2))
             for i in cp_results["labels"][:,c].nzind
@@ -118,7 +116,7 @@ function start(results::Dict{String, Any},
             end
         end
     elseif  config_params["master.stage2clustering"] == "conncomps"
-        println("extracting Connected components");
+        println("[M] extracting Connected components");
         G = Graphs.simple_adjlist(numpoints, is_directed=false);
         for i in collect(1:numpoints)
             for j in adj_mat[:,i].nzind
@@ -134,7 +132,7 @@ function start(results::Dict{String, Any},
             end
         end
     elseif  config_params["master.stage2clustering"] == "maxcliques"
-        println("obtaining Max Cliques");
+        println("[M] obtaining Max Cliques");
         G = Graphs.simple_adjlist(numpoints, is_directed=false);
         for i in collect(1:numpoints)
             for j in adj_mat[:,i].nzind
@@ -150,7 +148,7 @@ function start(results::Dict{String, Any},
             end
         end
     elseif  config_params["master.stage2clustering"] == "lblprop"
-        println("applying Label Propagation");
+        println("[M] applying Label Propagation");
         G = LightGraphs.Graph(numpoints)
         for i in collect(1:numpoints)
            for j in adj_mat[:, i].nzind
@@ -164,7 +162,7 @@ function start(results::Dict{String, Any},
         end
         labels_found, conv_history = LightGraphs.label_propagation(G);
     elseif  config_params["master.stage2clustering"] == "dbscan"
-        println("applying the DBSCAN method");
+        println("[M] applying the DBSCAN method");
         dbscan_cl = Clustering.dbscan(full(1.0 .- adj_mat), config_params["master.dbscan.eps"], config_params["master.dbscan.minpts"]);
         labels_found = dbscan_cl.assignments;
         
