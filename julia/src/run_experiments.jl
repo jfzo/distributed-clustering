@@ -36,8 +36,8 @@ include("/workspace/distributed_clustering/julia/src/dsnn_Experiment.jl")
 # Coloso
 #addprocs(["158.251.88.180:3301","158.251.88.180:3302","158.251.88.180:3303","158.251.88.180:3304",])
 
-overall_parameters = DSNN_IO.read_configuration(CONFIG_FILE);
-addprocs(overall_parameters["master.nodelist"]);
+config = DSNN_IO.read_configuration(CONFIG_FILE);
+addprocs(config["master.nodelist"]);
 
 @everywhere include("/workspace/distributed_clustering/julia/src/dsnn_IO.jl")
 @everywhere include("/workspace/distributed_clustering/julia/src/dsnn_KNN.jl")
@@ -49,16 +49,17 @@ using CSV
 
 results = Dict{String,Any}();
 
-run_seed = overall_parameters["seed"];
+run_seed = config["seed"];
 srand(run_seed);
-DATA_PATH = overall_parameters["master.inputpath"];
-BENCHMARK = overall_parameters["benchmark"];
+DATA_PATH = config["master.inputpath"];
+BENCHMARK = config["benchmark"];
 DATA_LEN, DATA_DIM = DSNN_IO.get_dimensions_from_input_file(DATA_PATH);
 partitions = DSNN_Master.generate_partitions(length(workers()), DATA_LEN); # N must be extracted from the data.
 
 
 println("\n\n***********************************************************")
-DSNN_Master.start(results, DATA_PATH, partitions, overall_parameters);
+println(DSNN_EXPERIMENT.config_as_str(config));
+DSNN_Master.start(results, DATA_PATH, partitions, config);
 #storing final result
 writedlm(@sprintf("%s.dsnnfinal.labels",DATA_PATH), results["stage2_labels"], "\n");
 
@@ -75,32 +76,32 @@ writedlm(@sprintf("%s.corepoints.labels",DATA_PATH), cp_real_labels, "\n");
 println("Corepoint labels identified in Stage-2 were stored in file ",@sprintf("%s.corepoints.labels",DATA_PATH));
 
 
-snnmat, knnmat = DSNN_KNN.get_snnsimilarity(Dw, overall_parameters["master.stage2knn"], l2knng_path=overall_parameters["l2knng.path"]);
+snnmat, knnmat = DSNN_KNN.get_snnsimilarity(Dw, config["master.stage2knn"], l2knng_path=config["l2knng.path"]);
 
 adj_mat = snnmat;
-if overall_parameters["master.use_snngraph"]
+if config["master.use_snngraph"]
     snngraph = DSNN_KNN.get_snngraph(knnmat, snnmat);
     adj_mat = snngraph;
 end
 
 @time begin
-    DSNN_EXPERIMENT.perform_corepoint_snn(adj_mat, overall_parameters);
+    DSNN_EXPERIMENT.perform_corepoint_snn(adj_mat, config);
 end
 
 @time begin
-    DSNN_EXPERIMENT.perform_corepoint_conncomps(adj_mat, overall_parameters);
+    DSNN_EXPERIMENT.perform_corepoint_conncomps(adj_mat, config);
 end
 
 @time begin
-    DSNN_EXPERIMENT.perform_corepoint_maxcliques(adj_mat, overall_parameters);
+    DSNN_EXPERIMENT.perform_corepoint_maxcliques(adj_mat, config);
 end
 
 @time begin
-    DSNN_EXPERIMENT.perform_corepoint_lblprop(adj_mat, overall_parameters);
+    DSNN_EXPERIMENT.perform_corepoint_lblprop(adj_mat, config);
 end
 
 @time begin
-    DSNN_EXPERIMENT.perform_corepoint_dbscan(adj_mat, overall_parameters);
+    DSNN_EXPERIMENT.perform_corepoint_dbscan(adj_mat, config);
 end
 
 run(`python evaluate_corepoint_files.py -e snn,dbscan,conncomps,maxcliques,lblprop -i $DATA_PATH -b $BENCHMARK -f rst`);

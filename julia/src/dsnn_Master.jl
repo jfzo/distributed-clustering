@@ -100,6 +100,7 @@ function start(results::Dict{String, Any},
 
     adj_mat = snnmat;
     if config_params["master.use_snngraph"]
+        println("[M] Using the SNN Graph as Adjacency Matrix");
         snngraph = DSNN_KNN.get_snngraph(knnmat, snnmat);
         adj_mat = snngraph;
     end

@@ -32,6 +32,7 @@ function stage1_start(
 
     adj_mat = snnmat;
     if config_params["worker.use_snngraph"]
+        println("[W] Using the SNN Graph as Adjacency Matrix");
         snn_graph = DSNN_KNN.get_snngraph(knnmat, snnmat);            
         adj_mat = snn_graph;
     end
@@ -144,8 +145,9 @@ function stage2_start(assigned_instances::Array{Int64,1},
     #snn_graph = DSNN_KNN.get_snngraph(knnmat, snnmat);
     adj_mat = snnmat;
     if config_params["worker.use_snngraph"]
+        println("[W] Using the SNN Graph as Adjacency Matrix");
         snn_graph = DSNN_KNN.get_snngraph(knnmat, snnmat);            
-        adj_mat = snngraph;
+        adj_mat = snn_graph;
     end
 
   
