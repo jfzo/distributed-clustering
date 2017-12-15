@@ -33,7 +33,8 @@ function stage1_start(
     adj_mat = snnmat;
     if config_params["worker.use_snngraph"]
         println("[W] Using the SNN Graph as Adjacency Matrix");
-        snn_graph = DSNN_KNN.get_snngraph(knnmat, snnmat);            
+        snn_graph = DSNN_KNN.get_snngraph(knnmat, snnmat);
+        #snn_graph = DSNN_KNN.get_snngraph(knnmat);# raw cosine similarity as edge weight
         adj_mat = snn_graph;
     end
 
@@ -142,11 +143,12 @@ function stage2_start(assigned_instances::Array{Int64,1},
 
     println("[W] Labeling assigned instances from the overall corepoints")
     snnmat, knnmat = DSNN_KNN.get_snnsimilarity(d, knn, l2knng_path=config_params["l2knng.path"]);
-    #snn_graph = DSNN_KNN.get_snngraph(knnmat, snnmat);
+
     adj_mat = snnmat;
     if config_params["worker.use_snngraph"]
         println("[W] Using the SNN Graph as Adjacency Matrix");
-        snn_graph = DSNN_KNN.get_snngraph(knnmat, snnmat);            
+        snn_graph = DSNN_KNN.get_snngraph(knnmat, snnmat);
+        #snn_graph = DSNN_KNN.get_snngraph(knnmat);# raw cosine similarity as edge weight
         adj_mat = snn_graph;
     end
 

@@ -572,13 +572,18 @@ function get_knn(data::SparseMatrixCSC, knn::Int64; file_prefix::String="wk", l2
             break
         catch y
             if isa(y, ErrorException)
-                knn = knn - 10;
+                knn = knn - 5;
+                if knn <= 0
+                    println("Couldnt find a valid knn parameter value")
+                    # meanwhile an assertion exception is thrown
+                    assert(knn > 0)
+                end
                 println("Decreasing the KNN to ",knn," !");
             end
         end
     end
     
-    knn = DSNN_IO.sparseMatFromFile(out_file);
+    knn_mat = DSNN_IO.sparseMatFromFile(out_file);
     
     try
         run(`rm $in_file $out_file`);
@@ -586,7 +591,7 @@ function get_knn(data::SparseMatrixCSC, knn::Int64; file_prefix::String="wk", l2
         println("Cannot delete files generated.");
     end
     
-    return knn;
+    return knn_mat;
 end
 
 function get_snnsimilarity(D::SparseMatrixCSC{Float64,Int64}, knn::Int64; min_threshold::Float64=0.0, l2knng_path::String="/workspace/l2knng/knng")
