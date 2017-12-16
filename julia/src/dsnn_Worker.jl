@@ -50,7 +50,7 @@ function stage1_start(
     
     if length(cl_results["corepoints"]) == 0
         println("[W] Warning! No corepoints were found. Aborting execution in this worker.");
-        
+        error(@sprintf("No corepoints were found by this worker (%d)", myid()) )
     end
 
     noise_col = find(x->x==DSNN_SNN.NOISE, cl_clusters);#cl_labels[:,noise_col].nzind contains all the noisy point indexes

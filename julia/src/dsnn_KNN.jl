@@ -575,8 +575,9 @@ function get_knn(data::SparseMatrixCSC, knn::Int64; file_prefix::String="wk", l2
                 knn = knn - 5;
                 if knn <= 0
                     println("Couldnt find a valid knn parameter value")
+                    error("Couldnt find a valid knn parameter value")
                     # meanwhile an assertion exception is thrown
-                    assert(knn > 0)
+                    #assert(knn > 0)
                 end
                 println("Decreasing the KNN to ",knn," !");
             end

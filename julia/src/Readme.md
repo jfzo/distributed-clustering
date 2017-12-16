@@ -17,7 +17,7 @@ Some useful commands:
 ```
 To sort the ARI scores (ascending order):
 
-sed -n '/D-SNN/s/ \+/ /gp' tuning_progress.log |cut -d ' ' -f5|sort -n
+sed -n '/D-SNN/s/ \+/ /gp' tuning_progress.log |cut -d ' ' -f5|sort -g
 
 
 To display the experiments in which the score XXX was attained (for instance the last score shown by the command above):

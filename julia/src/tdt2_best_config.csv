@@ -1,10 +1,12 @@
 l2knng.path:str=/workspace/l2knng/build/knng
-benchmark:str=/workspace/20newsgroups/20ng_tfidf.csv.clustering.20
-master.inputpath:str=/workspace/20newsgroups/20ng_tfidf.csv
+#benchmark:str=/workspace/TDT2/tdt2_tfidf_top30.csv.clustering.30
+#master.inputpath:str=/workspace/TDT2/tdt2_tfidf_top30.csv
+benchmark:str=/workspace/TDT2/tdt2_tfidf.csv.clustering.96
+master.inputpath:str=/workspace/TDT2/tdt2_tfidf.csv
 master.dbscan.eps:float=0.5
 master.dbscan.minpts:int=3
-master.nodelist:str_list=158.251.93.5:3301,158.251.93.5:3302,158.251.93.5:3303,158.251.93.5:3304,158.251.93.5:3305,158.251.93.5:3306
-#,158.251.93.5:3307,158.251.93.5:3308,158.251.93.5:3309,158.251.93.5:3310
+master.nodelist:str_list=158.251.93.5:3301,158.251.93.5:3302,158.251.93.5:3303,158.251.93.5:3304
+#,158.251.93.5:3305,158.251.93.5:3306,158.251.93.5:3307,158.251.93.5:3308
 master.snn.eps:float=0.03
 master.snn.minpts:int=5
 master.stage2clustering:str=snn

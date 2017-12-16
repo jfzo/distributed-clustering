@@ -106,7 +106,6 @@ worker.snn_minpts                          13                             [3, 8,
 worker.snn_eps                             0.9                            [0.1, 0.5, 0.7, 0.9]
 """
 
-output = open("tuning_progress.log", "w");
 
 results = Dict{String,Any}();
 run_seed = config["seed"];
@@ -116,13 +115,16 @@ DATA_PATH = config["master.inputpath"];
 DATA_LEN, DATA_DIM = DSNN_IO.get_dimensions_from_input_file(DATA_PATH);
 partitions = DSNN_Master.generate_partitions(length(workers()), DATA_LEN); # N must be extracted from the data.
 
-#=
+output = open(config["logging.path"], "w");
+
+
 config["master.stage2clustering"] = "conncomps"
-for master_stage2snnsim_threshold in [0.0, 0.05, 0.1, 0.5]
-    for master_stage2knn in [3, 7, 12, 20]
-        for worker_knn in [30, 50, 70]
-            for worker_snn_minpts in [3, 5, 8, 10, 20]
-                for worker_snn_eps in [0.01, 0.03, 0.07, 0.1, 0.5, 0.9]
+config["master.use_snngraph"] = false
+for master_stage2snnsim_threshold in [0.0, 0.001, 0.005, 0.05]
+    for master_stage2knn in [3, 7, 12, 20, 50]
+        for worker_knn in [50, 70, 120]
+            for worker_snn_minpts in [3, 5, 7, 9, 11, 15, 20, 30]
+                for worker_snn_eps in [0.001, 0.005, 0.01, 0.05, 0.07, 0.1]
                     config["master.stage2snnsim_threshold"] = master_stage2snnsim_threshold;
                     config["master.stage2knn"] = master_stage2knn;                    
                     config["worker.knn"] = worker_knn;
@@ -134,8 +136,9 @@ for master_stage2snnsim_threshold in [0.0, 0.05, 0.1, 0.5]
                     try
                         execute_run();
                     catch y
-                        if isa(y, AssertionError)
-                            write(output, "Couldnt find a valid knn parameter in order to compute the Knn-neighborhoods!");
+                        if isa(y, ErrorException)
+                            println(y)
+                            write(output, "Error occurred!");
                         end
                     end
                 end
@@ -143,32 +146,42 @@ for master_stage2snnsim_threshold in [0.0, 0.05, 0.1, 0.5]
         end
     end
 end
-=#
 
 
+#=
 config["master.stage2clustering"] = "snn"
 for master_snn_minpts in [3, 5, 8, 13, 20]
     for master_snn_eps in [0.001, 0.01, 0.03, 0.05, 0.1]
         for master_stage2snnsim_threshold in [0.0, 0.001, 0.01, 0.05]
             for master_stage2knn in [3, 5, 7, 10, 13, 15, 20]
-                config["master.snn.minpts"] = master_snn_minpts;
-                config["master.snn.eps"] = master_snn_eps;
-                config["master.stage2snnsim_threshold"] = master_stage2snnsim_threshold;
-                config["master.stage2knn"] = master_stage2knn;
-                
-                println();
-                println(DSNN_EXPERIMENT.config_as_str(config));
+                for worker_knn in [30, 50, 70]
+                    for worker_snn_minpts in [3, 5, 8, 10, 20]
+                        for worker_snn_eps in [0.01, 0.03, 0.07, 0.1, 0.5, 0.9]
+                            config["master.stage2snnsim_threshold"] = master_stage2snnsim_threshold;
+                            config["master.stage2knn"] = master_stage2knn;                    
+                            config["master.snn.minpts"] = master_snn_minpts;
+                            config["master.snn.eps"] = master_snn_eps;                            
+                            config["worker.knn"] = worker_knn;
+                            config["worker.snn_minpts"] = worker_snn_minpts;
+                            config["worker.snn_eps"] = worker_snn_eps;
 
-                try
-                    execute_run();
-                    catch y
-                    if isa(y, AssertionError)
-                        write(output, "Couldnt find a valid knn parameter in order to compute the Knn-neighborhoods!");
+                            println();
+                            println(DSNN_EXPERIMENT.config_as_str(config));
+
+                            try
+                                execute_run();
+                                catch y
+                                if isa(y, ErrorException)
+                                    write(output, y);
+                                end
+                            end
+                            
+                        end
                     end
-                end
+                end               
             end
         end
     end
 end
-
+=#
 close(output);
