@@ -38,7 +38,7 @@ function execute_run()
 
                 CSV.write(@sprintf("%s.corepoints.csv",DATA_PATH), DataFrames.DataFrame(full(transpose(Dw))), delim=' ',  header=false);
                 writedlm(@sprintf("%s.corepoints.labels",DATA_PATH), cp_real_labels, "\n");
-                write(output, "Corepoint labels identified in Stage-2 were stored in file ",@sprintf("%s.corepoints.labels (%d)\n",DATA_PATH, length(results["stage1_corepoints"])));
+                write(output, "Corepoint labels identified in Stage-1 were stored in file ",@sprintf("%s.corepoints.labels (%d)\n",DATA_PATH, length(results["stage1_corepoints"])));
 
 
                 snnmat, knnmat = DSNN_KNN.get_snnsimilarity(Dw, config["master.stage2knn"], l2knng_path=config["l2knng.path"]);
@@ -70,10 +70,10 @@ if length(workers()) > 1
 end
 
 
-@everywhere include("/workspace/distributed_clustering/julia/src/dsnn_IO.jl")
-@everywhere include("/workspace/distributed_clustering/julia/src/dsnn_KNN.jl")
-@everywhere include("/workspace/distributed_clustering/julia/src/dsnn_SNN.jl")
-@everywhere include("/workspace/distributed_clustering/julia/src/dsnn_Master.jl")
+include("/workspace/distributed_clustering/julia/src/dsnn_IO.jl")
+#@everywhere include("/workspace/distributed_clustering/julia/src/dsnn_KNN.jl")
+#@everywhere include("/workspace/distributed_clustering/julia/src/dsnn_SNN.jl")
+#@everywhere include("/workspace/distributed_clustering/julia/src/dsnn_Master.jl")
 
 
 config = DSNN_IO.read_configuration(CONFIG_FILE);
@@ -118,30 +118,29 @@ partitions = DSNN_Master.generate_partitions(length(workers()), DATA_LEN); # N m
 output = open(config["logging.path"], "w");
 
 
-config["master.stage2clustering"] = "conncomps"
+config["master.stage2clustering"] = "snn"
 config["master.use_snngraph"] = false
-for master_stage2snnsim_threshold in [0.0, 0.001, 0.005, 0.05]
-    for master_stage2knn in [3, 7, 12, 20, 50]
-        for worker_knn in [50, 70, 120]
-            for worker_snn_minpts in [3, 5, 7, 9, 11, 15, 20, 30]
-                for worker_snn_eps in [0.001, 0.005, 0.01, 0.05, 0.07, 0.1]
-                    config["master.stage2snnsim_threshold"] = master_stage2snnsim_threshold;
-                    config["master.stage2knn"] = master_stage2knn;                    
-                    config["worker.knn"] = worker_knn;
-                    config["worker.snn_minpts"] = worker_snn_minpts;
-                    config["worker.snn_eps"] = worker_snn_eps;
-                    println();
-                    println(DSNN_EXPERIMENT.config_as_str(config));
+for master_stage2snnsim_threshold in [0.0, 0.009]
+    for master_stage2knn in [30, 50, 80, 120]
+        for master_snn_minpts in [3, 5, 8, 13, 20]
+            for master_snn_eps in [0.0001, 0.001, 0.01, 0.03, 0.05, 0.1]
+                config["master.stage2snnsim_threshold"] = master_stage2snnsim_threshold;
+                config["master.stage2knn"] = master_stage2knn;
+                config["master.snn.minpts"] = master_snn_minpts;
+                config["master.snn.eps"] = master_snn_eps;
+                println();
 
-                    try
-                        execute_run();
+                println(DSNN_EXPERIMENT.config_as_str(config));
+
+                try
+                    execute_run();
                     catch y
-                        if isa(y, ErrorException)
-                            println(y)
-                            write(output, "Error occurred!");
-                        end
+                    if isa(y, ErrorException)
+                        println(y)
+                        write(output, "Error occurred!");
                     end
                 end
+
             end
         end
     end

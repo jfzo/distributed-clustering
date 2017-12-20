@@ -23,8 +23,6 @@ function stage1_start(
 
     pct_sample=config_params["worker.sample_pct"];
     knn=config_params["worker.knn"];
-    snn_eps=config_params["worker.snn_eps"];
-    snn_minpts=config_params["worker.snn_minpts"];
 
     d = DSNN_IO.sparseMatFromFile(inputPath, assigned_instances=assigned_instances, l2normalize=true);
     
@@ -37,68 +35,102 @@ function stage1_start(
         #snn_graph = DSNN_KNN.get_snngraph(knnmat);# raw cosine similarity as edge weight
         adj_mat = snn_graph;
     end
-
-    
-    
-    println("[W] executing snn clustering with eps:",snn_eps," and minpts:", snn_minpts)
-    #cl_results = DSNN_SNN.snn_clustering(snn_eps, snn_minpts, snn_graph);
-    cl_results = DSNN_SNN.snn_clustering(snn_eps, snn_minpts, adj_mat);
-
-    cl_labels = cl_results["labels"];# Matrix containing length(assigned_instances) x num_clusters_found
-    cl_clusters = cl_results["clusters"];# Array with the label of each column of the matrix above
-    cl_corepoints = cl_results["corepoints"];# Array with data point indexes
-    
-    if length(cl_results["corepoints"]) == 0
-        println("[W] Warning! No corepoints were found. Aborting execution in this worker.");
-        error(@sprintf("No corepoints were found by this worker (%d)", myid()) )
-    end
-
-    noise_col = find(x->x==DSNN_SNN.NOISE, cl_clusters);#cl_labels[:,noise_col].nzind contains all the noisy point indexes
-    noisy_pts = Int64[];
-    if length(noise_col) > 0 
-        noisy_pts = cl_labels[:,noise_col[1]].nzind;
-    end
-    noncorepoints = find(x->~(x in cl_corepoints) && ~(x in noisy_pts), collect(1:length(assigned_instances))); #cl_labels[:,noise_col].nzind contains all the noisy point indexes
-    #
-    # All these arrays contain point id's relative to assigned_instances!
-    #
-    
-    # Building a subset of assigned_points with the corepoints and a small sample of points with each one
-    
     result = Dict{String, Any}();
-    result["Eps"] = snn_eps;
-    result["MinPts"] = snn_minpts;
     result["knn"]=knn;
-    result["clusters"] = cl_clusters;
-    result["corepoints"] = assigned_instances[cl_corepoints];
-    result["noncorepoints"] = assigned_instances[noncorepoints];
-    result["noise_points"] = assigned_instances[noisy_pts];
-    result["cluster_assignment"] = cl_labels;
+
     
-    RNG_W = srand(config_params["seed"]);
-    sample_pts = Int64[]
-    for C in eachindex(cl_clusters)
-        # Sample points from cl_labels[:,C].nzind
-        # wv = weights([0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1])
-        C_size = length(cl_labels[:,C].nzind);
-        sample_C = Stats.sample(RNG_W, cl_labels[:,C].nzind, ceil(Int64, C_size*pct_sample), replace=false);        
-        sample_pts = vcat(sample_pts, sample_C);
-    end
-    
-    # filter corepoints from the sample sample_pts
-    filtered_sample = Int64[];
-    for pt in sample_pts
-        if !(pt in cl_corepoints)
-            push!(filtered_sample, pt);
+    if config_params["worker.use_snnclustering"]
+        snn_eps=config_params["worker.snn_eps"];
+        snn_minpts=config_params["worker.snn_minpts"];    
+        result["Eps"] = snn_eps;
+        result["MinPts"] = snn_minpts;
+
+        
+        println("[W] executing snn clustering with eps:",snn_eps," and minpts:", snn_minpts)
+        #cl_results = DSNN_SNN.snn_clustering(snn_eps, snn_minpts, snn_graph);
+        cl_results = DSNN_SNN.snn_clustering(snn_eps, snn_minpts, adj_mat);
+
+        cl_labels = cl_results["labels"];# Matrix containing length(assigned_instances) x num_clusters_found
+        cl_clusters = cl_results["clusters"];# Array with the label of each column of the matrix above
+        cl_corepoints = cl_results["corepoints"];# Array with data point indexes
+
+        if length(cl_results["corepoints"]) == 0
+            println("[W] Warning! No corepoints were found. Aborting execution in this worker.");
+            error(@sprintf("No corepoints were found by this worker (%d)", myid()) )
         end
+
+        noise_col = find(x->x==DSNN_SNN.NOISE, cl_clusters);#cl_labels[:,noise_col].nzind contains all the noisy point indexes
+        noisy_pts = Int64[];
+        if length(noise_col) > 0 
+            noisy_pts = cl_labels[:,noise_col[1]].nzind;
+        end
+        noncorepoints = find(x->~(x in cl_corepoints) && ~(x in noisy_pts), collect(1:length(assigned_instances))); #cl_labels[:,noise_col].nzind contains all the noisy point indexes
+        #
+        # All these arrays contain point id's relative to assigned_instances!
+        #
+
+        # Building a subset of assigned_points with the corepoints and a small sample of points with each one
+
+        result["clusters"] = cl_clusters;
+        result["corepoints"] = assigned_instances[cl_corepoints];
+        result["noncorepoints"] = assigned_instances[noncorepoints];
+        result["noise_points"] = assigned_instances[noisy_pts];
+        result["cluster_assignment"] = cl_labels;
+
+        RNG_W = srand(config_params["seed"]);
+        sample_pts = Int64[]
+        for C in eachindex(cl_clusters)
+            # Sample points from cl_labels[:,C].nzind
+            # wv = weights([0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1])
+            C_size = length(cl_labels[:,C].nzind);
+            sample_C = Stats.sample(RNG_W, cl_labels[:,C].nzind, ceil(Int64, C_size*pct_sample), replace=false);        
+            sample_pts = vcat(sample_pts, sample_C);
+        end
+
+        # filter corepoints from the sample sample_pts
+        filtered_sample = Int64[];
+        for pt in sample_pts
+            if !(pt in cl_corepoints)
+                push!(filtered_sample, pt);
+            end
+        end
+
+        sort!(filtered_sample);
+        #sample_pts = vcat(corepoints, sample_pts);#sampled_pts contains both points
+        result["sampled_points"] = assigned_instances[filtered_sample];
+    else
+        snn_eps=config_params["worker.coredetection_eps"];
+        snn_minpts=config_params["worker.coredetection_minpts"];
+        result["Eps"] = snn_eps;
+        result["MinPts"] = snn_minpts;
+        println("[W] executing corepoint detection with eps:",snn_eps," and minpts:", snn_minpts)        
+        corepts, sample_pts = DSNN_SNN.get_dataclusters_sample(snn_eps, snn_minpts, adj_mat, pct_sample);
+        
+        if length(corepts) == 0
+            println("[W] Warning! No corepoints were found. Aborting execution in this worker.");
+            error(@sprintf("No corepoints were found by this worker (%d)", myid()) )
+        end
+        
+        result["sampled_points"] = assigned_instances[sample_pts];
+        result["corepoints"] = assigned_instances[corepts];
+        result["noise_points"] = Int64[];
+        result["cluster_assignment"] = Int64[];
     end
     
-    sort!(filtered_sample);
-    #sample_pts = vcat(corepoints, sample_pts);#sampled_pts contains both points
-    result["sampled_points"] = assigned_instances[filtered_sample];
-    return result    
+    # Operation condition: no more than 30% of the total data assigned is reported
+    if length(result["corepoints"]) > (0.3*length(assigned_instances))
+        println("[W] Warning! Too many corepoints were found. Aborting execution in this worker.");
+        error(@sprintf("Too many corepoints %d from %d (more than 30 pct) were found by this worker (%d)", length(result["corepoints"]),length(assigned_instances),myid()) )
+    end
+
+    return result
 end
 
+
+
+
+"""
+"""
 function stage2_start(assigned_instances::Array{Int64,1}, 
     overall_corepoints::Array{Int64, 1},
     corepoint_labels::Array{Int64, 1},

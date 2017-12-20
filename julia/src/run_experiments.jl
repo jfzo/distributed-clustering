@@ -28,13 +28,6 @@ end
 include("/workspace/distributed_clustering/julia/src/dsnn_IO.jl")
 include("/workspace/distributed_clustering/julia/src/dsnn_SNN.jl")
 include("/workspace/distributed_clustering/julia/src/dsnn_Experiment.jl")
-# Grancoloso
-#addprocs(["158.251.93.5:3308","158.251.93.5:3307","158.251.93.5:3306","158.251.93.5:3305",])
-#addprocs(["158.251.93.5:3308","158.251.93.5:3307","158.251.93.5:3306","158.251.93.5:3305",
-#        "158.251.93.5:3304","158.251.93.5:3303","158.251.93.5:3302","158.251.93.5:3301",])
-
-# Coloso
-#addprocs(["158.251.88.180:3301","158.251.88.180:3302","158.251.88.180:3303","158.251.88.180:3304",])
 
 config = DSNN_IO.read_configuration(CONFIG_FILE);
 addprocs(config["master.nodelist"]);
