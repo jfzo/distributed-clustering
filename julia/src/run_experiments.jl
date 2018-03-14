@@ -32,6 +32,9 @@ include("/workspace/distributed_clustering/julia/src/dsnn_Experiment.jl")
 config = DSNN_IO.read_configuration(CONFIG_FILE);
 addprocs(config["master.nodelist"]);
 
+output = open(config["logging.path"], "w");
+println("Logging file: ", config["logging.path"]);
+
 @everywhere include("/workspace/distributed_clustering/julia/src/dsnn_IO.jl")
 @everywhere include("/workspace/distributed_clustering/julia/src/dsnn_KNN.jl")
 @everywhere include("/workspace/distributed_clustering/julia/src/dsnn_SNN.jl")
@@ -50,11 +53,20 @@ DATA_LEN, DATA_DIM = DSNN_IO.get_dimensions_from_input_file(DATA_PATH);
 partitions = DSNN_Master.generate_partitions(length(workers()), DATA_LEN); # N must be extracted from the data.
 
 
-println("\n\n***********************************************************")
-println(DSNN_EXPERIMENT.config_as_str(config));
+#println("\n\n***********************************************************")
+write(output, "\n***********************************************************\n");
+
+#println(DSNN_EXPERIMENT.config_as_str(config));
+write(output, DSNN_EXPERIMENT.config_as_str(config));
+write(output,"\n");
+tic();
 DSNN_Master.start(results, DATA_PATH, partitions, config);
+elapsed_t = toc();
 #storing final result
+write(output, @sprintf("Elapsed time: %f\n", elapsed_t));
 writedlm(@sprintf("%s.dsnnfinal.labels",DATA_PATH), results["stage2_labels"], "\n");
+write(output, "Final labels stored at ",@sprintf("%s.dsnnfinal.labels\n",DATA_PATH));
+
 
 
 # Experimentation over the obtained corepoints
@@ -66,7 +78,8 @@ cp_real_labels = real_labels[results["stage1_corepoints"]];
 
 CSV.write(@sprintf("%s.corepoints.csv",DATA_PATH), DataFrames.DataFrame(full(transpose(Dw))), delim=' ',  header=false);
 writedlm(@sprintf("%s.corepoints.labels",DATA_PATH), cp_real_labels, "\n");
-println("Corepoint labels identified in Stage-2 were stored in file ",@sprintf("%s.corepoints.labels",DATA_PATH));
+#println("Corepoint labels identified in Stage-2 were stored in file ",@sprintf("%s.corepoints.labels",DATA_PATH));
+write(output, "Corepoint labels identified in Stage-1 were stored in file ",@sprintf("%s.corepoints.labels (%d)\n",DATA_PATH, length(results["stage1_corepoints"])));
 
 
 snnmat, knnmat = DSNN_KNN.get_snnsimilarity(Dw, config["master.stage2knn"], l2knng_path=config["l2knng.path"]);
@@ -97,4 +110,8 @@ end
     DSNN_EXPERIMENT.perform_corepoint_dbscan(adj_mat, config);
 end
 
-run(`python evaluate_corepoint_files.py -e snn,dbscan,conncomps,maxcliques,lblprop -i $DATA_PATH -b $BENCHMARK -f rst`);
+#run(`python evaluate_corepoint_files.py -e snn,dbscan,conncomps,maxcliques,lblprop -i $DATA_PATH -b $BENCHMARK -f rst`);
+s_performance = readstring(`python evaluate_corepoint_files.py -e snn,dbscan,conncomps,maxcliques,lblprop -i $DATA_PATH -b $BENCHMARK -f rst`);
+write(output, s_performance);
+write(output, "\n");
+close(output);
