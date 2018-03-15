@@ -117,13 +117,12 @@ partitions = DSNN_Master.generate_partitions(length(workers()), DATA_LEN); # N m
 
 output = open(config["logging.path"], "w");
 
-
 config["master.stage2clustering"] = "snn"
 config["master.use_snngraph"] = false
-for master_stage2snnsim_threshold in [0.0, 0.009]
-    for master_stage2knn in [30, 50, 80, 120]
+for master_stage2snnsim_threshold in [0.0, 1e-7, 1e-6, 1e-5]
+    for master_stage2knn in [50, 120]
         for master_snn_minpts in [3, 5, 8, 13, 20]
-            for master_snn_eps in [0.0001, 0.001, 0.01, 0.03, 0.05, 0.1]
+            for master_snn_eps in [1e-6, 5e-6, 1e-5, 5e-5, 1e-4, 5e-4, 1e-3, 5e-3, 1e-2, 1e-1]
                 config["master.stage2snnsim_threshold"] = master_stage2snnsim_threshold;
                 config["master.stage2knn"] = master_stage2knn;
                 config["master.snn.minpts"] = master_snn_minpts;
@@ -148,18 +147,18 @@ end
 
 
 #=
-config["master.stage2clustering"] = "snn"
-for master_snn_minpts in [3, 5, 8, 13, 20]
-    for master_snn_eps in [0.001, 0.01, 0.03, 0.05, 0.1]
-        for master_stage2snnsim_threshold in [0.0, 0.001, 0.01, 0.05]
-            for master_stage2knn in [3, 5, 7, 10, 13, 15, 20]
-                for worker_knn in [30, 50, 70]
-                    for worker_snn_minpts in [3, 5, 8, 10, 20]
-                        for worker_snn_eps in [0.01, 0.03, 0.07, 0.1, 0.5, 0.9]
+config["master.stage2clustering"] = "conncomps"
+#for master_snn_minpts in [3, 5, 8, 13, 20]
+#    for master_snn_eps in [0.001, 0.01, 0.03, 0.05, 0.1]
+        for master_stage2snnsim_threshold in [0.0]
+            for master_stage2knn in [3]
+                for worker_knn in [120]
+                    for worker_snn_minpts in [5]
+                        for worker_snn_eps in [1e-7, 1e-6, 5e-6]
                             config["master.stage2snnsim_threshold"] = master_stage2snnsim_threshold;
                             config["master.stage2knn"] = master_stage2knn;                    
-                            config["master.snn.minpts"] = master_snn_minpts;
-                            config["master.snn.eps"] = master_snn_eps;                            
+                            #config["master.snn.minpts"] = master_snn_minpts;
+                            #config["master.snn.eps"] = master_snn_eps;                            
                             config["worker.knn"] = worker_knn;
                             config["worker.snn_minpts"] = worker_snn_minpts;
                             config["worker.snn_eps"] = worker_snn_eps;
@@ -180,7 +179,8 @@ for master_snn_minpts in [3, 5, 8, 13, 20]
                 end               
             end
         end
-    end
-end
+#    end
+#end
 =#
+
 close(output);
