@@ -1,5 +1,6 @@
-benchmark:str=/workspace/cure_large.dat.clustering.7
+logging.path:str=tuning_progress_cure.log
 l2knng.path:str=/workspace/l2knng/build/knng
+benchmark:str=/workspace/cure_large.dat.clustering.7
 master.dbscan.eps:float=0.5
 master.dbscan.minpts:int=3
 master.inputpath:str=/workspace/cure_large.dat

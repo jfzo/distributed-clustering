@@ -55,7 +55,6 @@ partitions = DSNN_Master.generate_partitions(length(workers()), DATA_LEN); # N m
 
 #println("\n\n***********************************************************")
 write(output, "\n***********************************************************\n");
-
 #println(DSNN_EXPERIMENT.config_as_str(config));
 write(output, DSNN_EXPERIMENT.config_as_str(config));
 write(output,"\n");
@@ -63,6 +62,13 @@ tic();
 DSNN_Master.start(results, DATA_PATH, partitions, config);
 elapsed_t = toc();
 #storing final result
+write(output, "***** TIMERS ******\n");
+write(output, @sprintf("elapsed_worker_clustering: %f\n", results["elapsed_worker_clustering"]));
+write(output, @sprintf("elapsed_master_wresults_join: %f\n", results["elapsed_master_wresults_join"]));
+write(output, @sprintf("elapsed_master_similarity_computation: %f\n", results["elapsed_master_similarity_computation"]));
+write(output, @sprintf("elapsed_master_clustering: %f\n", results["elapsed_master_clustering"]));
+write(output, @sprintf("elapsed_stage2_retransmission: %f\n", results["elapsed_stage2_retransmission"]));
+write(output, @sprintf("elapsed_master_final_label_join: %f\n", results["elapsed_master_final_label_join"]));
 write(output, @sprintf("Elapsed time: %f\n", elapsed_t));
 writedlm(@sprintf("%s.dsnnfinal.labels",DATA_PATH), results["stage2_labels"], "\n");
 write(output, "Final labels stored at ",@sprintf("%s.dsnnfinal.labels\n",DATA_PATH));

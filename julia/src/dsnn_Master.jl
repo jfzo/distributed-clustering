@@ -24,7 +24,9 @@ function start(results::Dict{String, Any},
     partition::Array{Int64,1}, 
     config_params::Dict{String, Any}
     )
-    
+
+    tic();
+
     N = length(partition);
     Nnodes = length(unique(partition));
     samples = Dict{Int64, Array{Int64,1}}()
@@ -50,8 +52,9 @@ function start(results::Dict{String, Any},
         );
         end
     end
+    results["elapsed_worker_clustering"] = toc();
     
-    
+    tic();
     println("[M] Joining worker's results of Stage 1");
     # Join sampled points
     overall_sample = Array{Int64,1}(); # contains real instance ids
@@ -81,13 +84,13 @@ function start(results::Dict{String, Any},
     #sampled_data = overall_sample_corepoints;
 
     println("[M] Corepoints (",length(overall_sample_corepoints),") and Samples (",length(overall_sample),")") 
-
+    results["elapsed_master_wresults_join"] = toc();
 
 
     ###
     ### STAGE 2
     ###
-    
+    tic();
     stage2_knn = config_params["master.stage2knn"];
     
     #recall that sampled-data contains corepoints and their samples
@@ -104,7 +107,9 @@ function start(results::Dict{String, Any},
         snngraph = DSNN_KNN.get_snngraph(knnmat, snnmat);
         adj_mat = snngraph;
     end
+    results["elapsed_master_similarity_computation"] = toc();
 
+    tic();
     print("[M] Grouping selected corepoints and sampled data by ");
     labels_found = fill(0, length(sampled_data));
     
@@ -173,13 +178,15 @@ function start(results::Dict{String, Any},
     corepoint_labels = labels_found[find(x->x in overall_sample_corepoints, sampled_data)]; 
 
     #assert(length(corepoint_labels) == length(overall_sample_corepoints))
-    
+    results["elapsed_master_clustering"] = toc();
+
     results["stage1_graph"] = adj_mat;
     
     results["centralized_worker_corepoints_labels"] = corepoint_labels;
     
     println("[M] Retransmitting overall corepoints (Stage 2)...") 
     
+    tic();
     # Send the labeled core-points, and the assignments to each worker.
     final_result = Dict{Int64, Dict{String, Array{Int64,1}}}()    
     # Each worker will label the non-core points by using a KNN-core-point voting scheme.    
@@ -200,11 +207,12 @@ function start(results::Dict{String, Any},
         end
     end
     
-    
+    results["elapsed_stage2_retransmission"] = toc();
     
     println("[M] Joining Worker's results of Stage 2.") 
 
-    
+    tic();
+
     overall_labels = zeros(Int64, N);
     for worker_id=keys(final_result)
         # final_result[worker_id] is a Dict with the assigned instances to that worker and the corresponding labels!
@@ -214,9 +222,11 @@ function start(results::Dict{String, Any},
         worker_assignment_labels = final_result[worker_id]["labels"];
         overall_labels[worker_assignment] = worker_assignment_labels;
     end
-        
+    results["elapsed_master_final_label_join"] = toc();    
+
     println("[M] Generating worker's final labelings...") 
     #results["corepoints"] = overall_sample[corepoints_ix];
     results["stage2_labels"] = overall_labels;
+
 end
 end
