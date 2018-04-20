@@ -49,6 +49,6 @@ grep -B 8 -A 5 XXX tuning_progress.log
 | worker.snn_minpts:int | 2 | Employed in stage1 at each worker to perform the SNN clustering |
 | worker.use_snngraph:bool | true | Generate (at each Worker) a snn graph connecting objects that are contained in eachother neighborhood or to use only the snn similarity matrix |
 | worker.use_snnclustering:bool | false | Indicates if SNN clustering is employed to find the corepoints and the associated sampled points at the Stage-1. If set to __False__, epsilon-nn is employed instead |
-| worker.coredetection_eps:float | 2e-1 | Used when worker.use_snnclustering is set to TRUE |
-| worker.coredetection_minpts:int | 100 | Used when worker.use_snnclustering is set to TRUE |
+| worker.coredetection_eps:float | 2e-1 | Used when worker.use_snnclustering is set to FALSE (epsilon-nn corepoint detection)|
+| worker.coredetection_minpts:int | 100 | Used when worker.use_snnclustering is set to FALSE (epsilon-nn corepoint detection)|
 | seed:int | 20929911109928830 | Seed employed in all randomized operations |
