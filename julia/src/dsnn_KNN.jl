@@ -414,6 +414,8 @@ end
 
 Returns the shared-nn similarity matrix.
 Employs a binary K-NearestNeighbor matrix (column based) and the lenght of each point's neighborhood
+
+DEPRECATED
 """
 function get_snnsimilarity(KNN::SparseMatrixCSC{Float64,Int64}, nbrhd_len::Array{Int64, 1})    
     snnmat = *(transpose(KNN), KNN);
@@ -435,8 +437,9 @@ end
 """
     get_snngraph(KNNMatrix, SIMMatrix)
 
-KNNMatrix is a binary matrix, whose columns denote the neighbors of the object represented by the column index.
 Returns an adjacency matrix in which two vertices are connected only if both are in each other neighborhood.
+
+KNNMatrix is a binary matrix, whose columns denote the neighbors of the object represented by the column index.
 The weight of the edge that connects each pair of vertices is given by its similarity value registered in SIM matrix.
 This two-parameter version of this function allows to employ a different similarity matrix or to operate when the
 KNN matrix contains only 1's or 0's.
@@ -448,10 +451,10 @@ function get_snngraph(KNN::SparseMatrixCSC{Float64,Int64}, SIM::SparseMatrixCSC{
 
     for i in collect(1:size(KNN, 2))
         for j in eachindex(KNN[:,i].nzind)
-            nnb = KNN[:,i].nzind[j]
-            nnbval = KNN[:,i].nzval[j]
+            nnb = KNN[:,i].nzind[j] # which row has nnz value in KNN
+            nnbval = KNN[:,i].nzval[j] # equivalent to KNN[nnb,i]
             if KNN[i,nnb] > 0 # checks if both have eachother in their neighbor lists.
-                if SIM[nnb, i] > 0 
+                if SIM[nnb, i] > 0  # this would be a good place to remove self similarity
                     push!(J, i); #column denoting the current object
                     push!(I, nnb); # row denoting the near neighbor
                     push!(V, SIM[nnb, i]);
@@ -551,11 +554,14 @@ using DSNN_IO
 """
     get_knn(data, knn, [file_prefix="wk"],[l2knng_path])
 
+Returns a square matrix in which each column i contains non-zero coeffs. in rows associated with its k-nn's.
+If 'similarities' is set to false then the coefficients are 1's, otherwise (default) the similarities are used.
+
 Uses the L2KNNG algorithm to obtain the k-nearest neighbros for each point.
 l2knng_path parameter set to '/workspace/l2knng/knng' by default contains the full path to the program.
 Warning: This function performs a System call in order to execute the L2Knng original implementation.
 """
-function get_knn(data::SparseMatrixCSC, knn::Int64; file_prefix::String="wk", l2knng_path::String="/workspace/l2knng/knng")
+function get_knn(data::SparseMatrixCSC, knn::Int64; similarities::Bool=true, file_prefix::String="wk", l2knng_path::String="/workspace/l2knng/knng")
     #if size(data,2) < 2*knn        
     #    knn = (size(data,2) / 2)  - 20;
     #    println(@sprintf("Warning: Nr. of neighbors is too high in contrast to the number of objects. Adjusted to %d",knn));
@@ -568,7 +574,7 @@ function get_knn(data::SparseMatrixCSC, knn::Int64; file_prefix::String="wk", l2
     
     while true
         try
-            run(pipeline(`$l2knng_path -fmtWrite=clu -norm=2 -k=$knn l2knn $in_file $out_file`, stdout=DevNull, stderr=DevNull));
+            run(pipeline(`$l2knng_path -norm=2 -fmtRead=clu -fmtWrite=clu -norm=2 -k=$knn l2knn $in_file $out_file`, stdout=DevNull, stderr=DevNull));
             break
         catch y
             if isa(y, ErrorException)
@@ -585,19 +591,33 @@ function get_knn(data::SparseMatrixCSC, knn::Int64; file_prefix::String="wk", l2
     end
     
     knn_mat = DSNN_IO.sparseMatFromFile(out_file);
+
+    if ~ similarities
+        N = size(knn_mat, 1);
+        for i in collect(1:N)
+            knn_mat[knn_mat[:,i].nzind,i] = 1.0;
+        end
+    end
     
     try
         run(`rm $in_file $out_file`);
     catch y 
         println("Cannot delete files generated.");
     end
-    
+
     return knn_mat;
 end
 
-function get_snnsimilarity(D::SparseMatrixCSC{Float64,Int64}, knn::Int64; min_threshold::Float64=0.0, l2knng_path::String="/workspace/l2knng/knng")
-    knnmat = get_knn(D, knn, l2knng_path=l2knng_path);
-    snnmat = (transpose(knnmat) * knnmat)./knn; # SNN similarity matrix with values between 0 and 1
+
+"""
+This is the official get_snnsimilarity function
+"""
+function get_snnsimilarity(D::SparseMatrixCSC{Float64,Int64}, knn::Int64; relative_values::Bool=true, min_threshold::Float64=0.0, l2knng_path::String="/workspace/l2knng/knng")
+    knnmat = get_knn(D, knn, similarities=false, l2knng_path=l2knng_path);
+    if ~relative_values
+        knn = 1;
+    end
+    snnmat = (transpose(knnmat) * knnmat)./knn; # SNN similarity matrix with values between 0 and knn
 
     if min_threshold == 0
         return snnmat, knnmat;

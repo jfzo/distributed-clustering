@@ -1,5 +1,6 @@
 module DSNN_SNN
 
+using Stats
 
 const UNCLASSIFIED = -1;
 const NOISE = -2;
@@ -95,7 +96,7 @@ end
 
 Performs DBScan over the data whose similarity structure is represented into the _Shared Nearest Neighbor Matrix_.
 """
-function snn_clustering(Eps::Float64, MinPts::Int64, Snn::SparseMatrixCSC{Float64,Int64})
+function snn_clustering_old(Eps::Float64, MinPts::Int64, Snn::SparseMatrixCSC{Float64,Int64})
     num_points = size(Snn,1)
     d_point_cluster_id = Dict{Int64, Int64}();            
     cluster_assignment = fill(UNCLASSIFIED, num_points);
@@ -151,7 +152,7 @@ function get_dataclusters_sample(Eps::Float64, MinPts::Int64, Snn::SparseMatrixC
     for i in collect(1:N)
         snndensity = 0;
         pq_i = DataStructures.PriorityQueue{Int64, Float64}(Base.Order.Reverse); # higher to lower sims
-        for e_nbr in Snn[:,i].nzind # nnz nbrs of point i
+        for e_nbr in Snn[:,i].nzind # nnz nbrs of point i
             if e_nbr == i
                 continue
             end
@@ -181,4 +182,117 @@ function get_dataclusters_sample(Eps::Float64, MinPts::Int64, Snn::SparseMatrixC
     sample = sort(collect(s_sample));# sort the points
     return corepts, sample;
 end
+
+######
+
+function dbscan_snn(e_snn::Array{Array{Int64}}, minPts::Int64, borderPoints::Bool,corepoints::Array{Int64,1})
+    n = length(e_snn);
+    #visited = [false for nni in 1:n];
+    visited = falses(n);
+    clusters = Array{Int64,1}[];
+    
+    for i in collect(1:n)
+        if visited[i]
+            continue;
+        end
+        N = copy(e_snn[i]);
+        Nweight = length(N)
+        if Nweight < minPts
+            continue;
+        end
+        # start new cluster and expand
+        cluster = Int64[];
+        push!(cluster, i);
+        push!(corepoints, i);
+        visited[i] = true
+        
+        while length(N) > 0
+            j = pop!(N)
+            if (visited[j]) # point already processed
+                continue 
+            end
+            visited[j] = true;
+            
+            N2 = copy(e_snn[j])
+            Nweight = length(N2)
+            
+            if Nweight >= minPts
+                # add all items from N2 into N
+                append!(N, N2);
+            end
+            
+            # borderPoints==FALSE -> border points are considered noise
+            if Nweight >= minPts || borderPoints
+                push!(cluster, j);
+            end
+        end
+        push!(clusters, cluster);
+    end
+    
+    
+    # prepare cluster vector
+    # unassigned points are noise (cluster 0)
+    id = zeros(Int64, n);
+    for i in collect(1:length(clusters))
+        for j in collect(1:length(clusters[i]))
+            id[clusters[i][j] ] = i ;
+        end
+    end
+    
+    return id;
+end
+
+function snn_clustering(Eps::Int64, MinPts::Int64, Snn::SparseMatrixCSC{Float64,Int64})
+    
+    println("----->   New implementation of snn_clustering!!")
+    N = size(Snn, 1);
+    corepoints = Int64[];
+    # find epsilon-nn
+    threshold_fun = function(x) x >= Eps  end;
+    esnn = Array{Array{Int64}}(N);
+    for i in collect(1:N)
+        esnn[i] = Int64[];
+        append!(esnn[i], Snn[:,i].nzind[find(threshold_fun, Snn[:,i].nzval)])
+    end
+    clustering = dbscan_snn(esnn, MinPts, false, corepoints);
+    println(@sprintf("Clustering finished (sum assignments:%d)",sum(clustering)))
+
+    clusters = sort(unique(clustering))
+    println("#clusters:", length(clusters))
+    #println("clusters:", clusters)
+    cm = countmap(clusters);
+    println("Proportions:",cm, "(",sum(values(cm)),")")
+    return clustering
+
+    #####
+    """
+    I = Int64[];
+    J = Int64[];
+    V = Int64[];
+
+    clusters = Int64[];
+    cl_label_to_col = Dict{Int64, Int64}();
+    nxt_col_val = 0;
+
+    for i=collect(1:num_points)
+        #cluster_assignment[i] = d_point_cluster_id[i]
+        curr_label = d_point_cluster_id[i];
+        if !haskey(cl_label_to_col, curr_label)
+            nxt_col_val += 1;
+            push!(clusters, curr_label);
+            cl_label_to_col[curr_label] = nxt_col_val;
+        end
+        push!(I, i);
+        push!(J, cl_label_to_col[curr_label]);
+        push!(V, 1);
+    end 
+
+    membership = sparse(I,J,V, num_points, nxt_col_val);
+
+    ######
+
+    return Dict{String, Any}("labels" => membership, "corepoints" => corepoints, "clusters" => clusters)
+    """
+end
+
 end

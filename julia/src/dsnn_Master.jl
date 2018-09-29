@@ -10,10 +10,10 @@ function generate_partitions(Nnodes::Int64, N::Int64)
     return P
 end
 
-include("/workspace/distributed_clustering/julia/src/dsnn_Worker.jl")
-include("/workspace/distributed_clustering/julia/src/dsnn_SNN.jl")
-include("/workspace/distributed_clustering/julia/src/dsnn_KNN.jl")
-include("/workspace/distributed_clustering/julia/src/dsnn_IO.jl")
+include("dsnn_Worker.jl")
+include("dsnn_SNN.jl")
+include("dsnn_KNN.jl")
+include("dsnn_IO.jl")
 
 using LightGraphs
 using Graphs
@@ -174,7 +174,7 @@ function start(results::Dict{String, Any},
         
     end
     
-    
+    # until now it never uses the corepoitns found by the centralized snn!
     corepoint_labels = labels_found[find(x->x in overall_sample_corepoints, sampled_data)]; 
 
     #assert(length(corepoint_labels) == length(overall_sample_corepoints))

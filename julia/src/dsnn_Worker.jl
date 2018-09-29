@@ -26,7 +26,7 @@ function stage1_start(
 
     d = DSNN_IO.sparseMatFromFile(inputPath, assigned_instances=assigned_instances, l2normalize=true);
     
-    snnmat, knnmat = DSNN_KNN.get_snnsimilarity(d, knn, l2knng_path=config_params["l2knng.path"]);
+    snnmat, knnmat = DSNN_KNN.get_snnsimilarity(d, knn, relative_values=false, l2knng_path=config_params["l2knng.path"]);
 
     adj_mat = snnmat;
     if config_params["worker.use_snngraph"]
@@ -57,6 +57,9 @@ function stage1_start(
         if length(cl_results["corepoints"]) == 0
             println("[W] Warning! No corepoints were found. Aborting execution in this worker.");
             error(@sprintf("No corepoints were found by this worker (%d)", myid()) )
+        else
+            println(@sprintf("[W] Nr. corepoints found by this worker (%d):%d", myid(),length()cl_results["corepoints"]) )
+            
         end
 
         noise_col = find(x->x==DSNN_SNN.NOISE, cl_clusters);#cl_labels[:,noise_col].nzind contains all the noisy point indexes
@@ -118,7 +121,7 @@ function stage1_start(
     end
     
     # Operation condition: no more than 30% of the total data assigned is reported
-    if length(result["corepoints"]) > (0.3*length(assigned_instances))
+    if length(result["corepoints"]) > (0.5*length(assigned_instances))
         println("[W] Warning! Too many corepoints were found. Aborting execution in this worker.");
         error(@sprintf("Too many corepoints %d from %d (more than 30 pct) were found by this worker (%d)", length(result["corepoints"]),length(assigned_instances),myid()) )
     end
